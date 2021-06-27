@@ -1,37 +1,47 @@
-use std::collections::VecDeque;
+use crate::object::Object;
 use rand::Rng;
+use std::collections::VecDeque;
 
 #[derive(Debug, Clone)]
 enum Branch {
-	None,
-	Left,
-	Right,
+    None,
+    Left,
+    Right,
 }
 
 enum PlayerPos {
-	Left,
-	Right,
+    Left,
+    Right,
 }
 
 enum PlayerAction {
-	ChopLeft,
-	ChopRight,
+    ChopLeft,
+    ChopRight,
 }
 
 struct Player {
-	pos: PlayerPos,
-	alive: bool,
-	score: u32,
+    pos: PlayerPos,
+    alive: bool,
+    score: u32,
 }
 
-struct Game {
-	player: Player,
-	tree: VecDeque<Branch>,
+pub struct Game {
+    player: Player,
+    tree: VecDeque<Branch>,
 }
 
 impl Game {
-	fn new() -> Self {
-		let mut tree: VecDeque<Branch> = vec![Branch::None; 5].into();
-		
-	} 
+    pub fn new() -> Self {
+        let mut tree: VecDeque<Branch> = vec![Branch::None; 5].into();
+        let player = Player {
+            pos: PlayerPos::Left,
+            alive: true,
+            score: 0,
+        };
+        Self { player, tree }
+    }
+
+    pub fn to_scene(&self) -> Vec<Object> {
+        vec![]
+    }
 }
