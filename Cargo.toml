@@ -1,0 +1,20 @@
+[package]
+name = "lumber"
+version = "0.1.0"
+authors = ["Theo Puranen Åhfeldt <34159999+theoahfeldt@users.noreply.github.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rand = "0.8"
+itertools = "0.10"
+cgmath = "0.17"
+glfw = "0.41"
+luminance = "0.43"
+luminance-derive = "0.6"
+luminance-front = "0.3"
+luminance-glfw = "0.15"
+luminance-windowing = "0.9"
+try-guard = "0.2"
+wavefront_obj = "10"
