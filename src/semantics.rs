@@ -9,6 +9,8 @@ pub struct ShaderInterface {
     pub view: Uniform<[[f32; 4]; 4]>,
     #[uniform(unbound)]
     pub local_transform: Uniform<[[f32; 4]; 4]>,
+    #[uniform(unbound)]
+    pub model_transform: Uniform<[[f32; 4]; 4]>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Semantics)]

@@ -1,5 +1,5 @@
-use crate::object::{Transform, Object};
-use crate::object;
+use crate::object::{Object, Transform};
+use cgmath::Vector3;
 use rand::Rng;
 use std::collections::VecDeque;
 
@@ -26,32 +26,56 @@ struct Player {
     score: u32,
 }
 
-struct Asset<'a> {
-    objects: Vec<Object<'a>>,
-    transform: Transform,
+pub type Model<'a> = Vec<Object<'a>>;
+
+pub struct GameObject<'a> {
+    pub model: &'a Model<'a>,
+    pub transform: Transform,
+}
+
+pub struct GameModels<'a> {
+    pub log: Model<'a>,
+    pub branch_log: Model<'a>,
 }
 
 pub struct Game<'a> {
     player: Player,
     tree: VecDeque<Branch>,
-    assets: Vec<Asset<'a>>,
-    meshes: Vec<Tess<Vertex, VertexIndex, (), Interleaved>>
+    models: GameModels<'a>,
 }
 
-impl Game<'_> {
-    pub fn new() -> Self {
-        let mut tree: VecDeque<Branch> = vec![Branch::None; 5].into();
+impl<'a> Game<'a> {
+    pub fn new(models: GameModels<'a>) -> Self {
+        let tree: VecDeque<Branch> = vec![Branch::None; 5].into();
         let player = Player {
             pos: PlayerPos::Left,
             alive: true,
             score: 0,
         };
-        let cylinder = object::cylinder(1., 0.5, 20);
-        let assets = vec![Asset {}]
-        Self { player, tree }
+        Self {
+            player,
+            tree,
+            models,
+        }
     }
 
-    pub fn to_scene(&self) -> Vec<Object> {
-        vec![]
+    pub fn to_scene(&self) -> Vec<GameObject> {
+        self.tree
+            .clone()
+            .iter()
+            .enumerate()
+            .map(|(i, val)| {
+                let model = match val {
+                    Branch::None => &self.models.log,
+                    Branch::Left | Branch::Right => &self.models.branch_log,
+                };
+                let transform = Transform {
+                    position: Vector3::new(0., i as f32, 0.),
+                    scale: 0.,
+                    orientation: Vector3::new(0., 0., 0.),
+                };
+                GameObject { model, transform }
+            })
+            .collect()
     }
 }

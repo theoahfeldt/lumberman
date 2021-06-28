@@ -1,5 +1,4 @@
-use crate::semantics::Vertex;
-use crate::semantics::{VertexNormal, VertexPosition};
+use crate::semantics::{Vertex, VertexNormal, VertexPosition};
 use cgmath::{Matrix4, Vector3};
 use itertools::Itertools;
 use luminance_front::context::GraphicsContext;

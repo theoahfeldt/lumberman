@@ -1,7 +1,8 @@
 use cgmath::{perspective, EuclideanSpace, Matrix4, Point3, Rad, Vector3};
 use glfw::{Action, Context as _, Key, WindowEvent};
-use lumber::game::Game;
-use lumber::object::{Mesh, Object, VertexIndex};
+use lumber::game::{Game, GameModels, Model};
+use lumber::object;
+use lumber::object::{Mesh, Object, Transform, VertexIndex};
 use lumber::semantics::{Semantics, ShaderInterface, Vertex, VertexNormal, VertexPosition};
 use luminance_front::context::GraphicsContext;
 use luminance_front::pipeline::PipelineState;
@@ -26,8 +27,6 @@ fn main() {
     };
     let surface = GlfwSurface::new_gl33("Hello, world!", WindowOpt::default().set_dim(dim));
 
-    let game = Game::new();
-
     match surface {
         Ok(surface) => {
             eprintln!("graphics surface created");
@@ -42,44 +41,32 @@ fn main() {
 }
 
 fn main_loop(surface: GlfwSurface) {
-    let path = env::args()
-        .skip(1)
-        .next()
-        .expect("first argument must be the path of the .obj file to view");
-    println!("loading {}", path);
-
     let mut ctxt = surface.context;
     let events = surface.events_rx;
     let back_buffer = ctxt.back_buffer().expect("back buffer");
     let start_t = Instant::now();
-
-    //let mesh = Obj::load(path).unwrap().to_tess(&mut ctxt).unwrap();
-    let source = cylinder(1., 0.5, 20);
-    // let object = InObj {
-    // 	source : &source,
-    // 	instances : vec![Instance::new([0.5, 0., 0.].into(), (1.).into(), [0., 0., 1.,].into())]
-    // };
-    let mesh = source.to_tess(&mut ctxt).unwrap();
-    let object1 = Object {
-        mesh: &mesh,
-        position: Vector3::<f32>::new(0., 0., 0.),
-        scale: 1.,
-        orientation: Vector3::<f32>::new(0., 0., 0.),
-    };
-    let object2 = Object {
-        mesh: &mesh,
-        position: Vector3::<f32>::new(0., 1., 0.),
-        scale: 1.,
-        orientation: Vector3::<f32>::new(0., 0., 0.),
-    };
-
-    let objects = vec![object1, object2];
 
     let mut program = ctxt
         .new_shader_program::<Semantics, (), ShaderInterface>()
         .from_strings(VS_STR, None, None, FS_STR)
         .unwrap()
         .ignore_warnings();
+
+    let cylinder = object::cylinder(1., 0.5, 20).to_tess(&mut ctxt).unwrap();
+    let log = Object {
+        mesh: &cylinder,
+        transform: Transform::new(),
+    };
+    let cylinder = object::cylinder(1., 0.5, 5).to_tess(&mut ctxt).unwrap();
+    let branch = Object {
+        mesh: &cylinder,
+        transform: Transform::new(),
+    };
+    let models = GameModels {
+        log: vec![log],
+        branch_log: vec![branch],
+    };
+    let game = Game::new(models);
 
     let [width, height] = back_buffer.size();
     let projection = perspective(FOVY, width as f32 / height as f32, Z_NEAR, Z_FAR);
@@ -115,9 +102,12 @@ fn main_loop(surface: GlfwSurface) {
                         iface.set(&uni.view, view.into());
 
                         rdr_gate.render(&RenderState::default(), |mut tess_gate| {
-                            objects.iter().try_for_each(|obj| {
-                                iface.set(&uni.local_transform, obj.get_transform().into());
-                                tess_gate.render(obj.mesh)
+                            game.to_scene().iter().try_for_each(|m| {
+                                iface.set(&uni.model_transform, m.transform.to_matrix().into());
+                                m.model.iter().try_for_each(|o| {
+                                    iface.set(&uni.local_transform, o.get_transform().into());
+                                    tess_gate.render(o.mesh)
+                                })
                             })
                         })
                     })
