@@ -1,4 +1,5 @@
-use crate::object::Object;
+use crate::object::{Transform, Object};
+use crate::object;
 use rand::Rng;
 use std::collections::VecDeque;
 
@@ -25,12 +26,19 @@ struct Player {
     score: u32,
 }
 
-pub struct Game {
-    player: Player,
-    tree: VecDeque<Branch>,
+struct Asset<'a> {
+    objects: Vec<Object<'a>>,
+    transform: Transform,
 }
 
-impl Game {
+pub struct Game<'a> {
+    player: Player,
+    tree: VecDeque<Branch>,
+    assets: Vec<Asset<'a>>,
+    meshes: Vec<Tess<Vertex, VertexIndex, (), Interleaved>>
+}
+
+impl Game<'_> {
     pub fn new() -> Self {
         let mut tree: VecDeque<Branch> = vec![Branch::None; 5].into();
         let player = Player {
@@ -38,6 +46,8 @@ impl Game {
             alive: true,
             score: 0,
         };
+        let cylinder = object::cylinder(1., 0.5, 20);
+        let assets = vec![Asset {}]
         Self { player, tree }
     }
 

@@ -1,6 +1,5 @@
 use cgmath::{perspective, EuclideanSpace, Matrix4, Point3, Rad, Vector3};
 use glfw::{Action, Context as _, Key, WindowEvent};
-use itertools::Itertools;
 use lumber::game::Game;
 use lumber::object::{Mesh, Object, VertexIndex};
 use lumber::semantics::{Semantics, ShaderInterface, Vertex, VertexNormal, VertexPosition};
@@ -19,42 +18,6 @@ const FS_STR: &str = include_str!("fs.glsl");
 const FOVY: Rad<f32> = Rad(std::f32::consts::FRAC_PI_2);
 const Z_NEAR: f32 = 0.1;
 const Z_FAR: f32 = 10.;
-
-fn cylinder(height: f32, radius: f32, res: u32) -> Mesh {
-    let co2 = (0..res)
-        .map(|n| std::f32::consts::PI * 2. * (n as f32) / (res as f32))
-        .map(|a| (a.cos() * radius, a.sin() * radius));
-    let (co2_top, co2_bot) = co2.tee();
-    let top = height / 2.;
-    let bot = -top;
-    let top_verts = co2_top.map(|(x, y)| {
-        Vertex::new(
-            VertexPosition::new([x, y, top]),
-            VertexNormal::new([x, y, 0.]),
-        )
-    });
-    let bot_verts = co2_bot.map(|(x, y)| {
-        Vertex::new(
-            VertexPosition::new([x, y, bot]),
-            VertexNormal::new([x, y, 0.]),
-        )
-    });
-    let vertices = top_verts.chain(bot_verts).collect();
-    let indices = (0..res)
-        .flat_map(|n| {
-            vec![
-                n,
-                (n + 1) % res,
-                n + res,
-                n + res,
-                (n + 1) % res + res,
-                (n + 1) % res,
-            ]
-        })
-        .map(|i| i as VertexIndex)
-        .collect();
-    Mesh { vertices, indices }
-}
 
 fn main() {
     let dim = WindowDim::Windowed {
