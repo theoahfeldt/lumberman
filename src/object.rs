@@ -1,9 +1,9 @@
 use crate::semantics::{Vertex, VertexNormal, VertexPosition};
-use cgmath::{Matrix4, Vector3};
 use itertools::Itertools;
 use luminance_front::context::GraphicsContext;
 use luminance_front::tess::{Interleaved, Mode, Tess, TessError};
 use luminance_front::Backend;
+use nalgebra::{Matrix4, Translation3, UnitQuaternion};
 
 pub type VertexIndex = u32;
 
@@ -29,25 +29,31 @@ impl Mesh {
 }
 
 pub struct Transform {
-    pub position: Vector3<f32>,
-    pub scale: f32,
-    pub orientation: Vector3<f32>,
+    pub translation: Option<Translation3<f32>>,
+    pub scale: Option<f32>,
+    pub orientation: Option<UnitQuaternion<f32>>,
 }
 
 impl Transform {
     pub fn to_matrix(&self) -> Matrix4<f32> {
-        let local_transform = Matrix4::<f32>::from_translation(self.position);
+        let mut local_transform = Matrix4::<f32>::identity();
+        if let Some(ref scale) = self.translation {
+            //TODO
+        }
+        if let Some(ref orientation) = self.orientation {
+            local_transform = orientation.to_homogeneous() * local_transform
+        }
+        if let Some(ref translation) = self.translation {
+            local_transform = translation.to_homogeneous() * local_transform
+        }
         local_transform
     }
 
     pub fn new() -> Self {
-        let position = Vector3::new(0., 0., 0.);
-        let scale = 1.;
-        let orientation = Vector3::new(0., 0., 0.);
         Self {
-            position,
-            scale,
-            orientation,
+            translation: None,
+            scale: None,
+            orientation: None,
         }
     }
 }

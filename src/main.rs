@@ -1,22 +1,21 @@
-use cgmath::{perspective, EuclideanSpace, Matrix4, Point3, Rad, Vector3};
 use glfw::{Action, Context as _, Key, WindowEvent};
-use lumber::game::{Game, GameModels, Model};
+use lumber::game::{Game, GameModels, PlayerAction};
 use lumber::object;
-use lumber::object::{Mesh, Object, Transform, VertexIndex};
-use lumber::semantics::{Semantics, ShaderInterface, Vertex, VertexNormal, VertexPosition};
+use lumber::object::{Object, Transform};
+use lumber::semantics::{Semantics, ShaderInterface};
 use luminance_front::context::GraphicsContext;
 use luminance_front::pipeline::PipelineState;
 use luminance_front::render_state::RenderState;
 use luminance_glfw::GlfwSurface;
 use luminance_windowing::{WindowDim, WindowOpt};
-use std::env;
+use nalgebra::{Matrix4, Point3, RealField, UnitQuaternion, Vector3};
 use std::process::exit;
 use std::time::Instant;
 
 const VS_STR: &str = include_str!("vs.glsl");
 const FS_STR: &str = include_str!("fs.glsl");
 
-const FOVY: Rad<f32> = Rad(std::f32::consts::FRAC_PI_2);
+const FOVY: f32 = std::f32::consts::FRAC_PI_2;
 const Z_NEAR: f32 = 0.1;
 const Z_FAR: f32 = 10.;
 
@@ -55,7 +54,14 @@ fn main_loop(surface: GlfwSurface) {
     let cylinder = object::cylinder(1., 0.5, 20).to_tess(&mut ctxt).unwrap();
     let log = Object {
         mesh: &cylinder,
-        transform: Transform::new(),
+        transform: Transform {
+            translation: None,
+            scale: None,
+            orientation: Some(UnitQuaternion::from_axis_angle(
+                &Vector3::<f32>::x_axis(),
+                RealField::frac_pi_2(),
+            )),
+        },
     };
     let cylinder = object::cylinder(1., 0.5, 5).to_tess(&mut ctxt).unwrap();
     let branch = Object {
@@ -66,13 +72,18 @@ fn main_loop(surface: GlfwSurface) {
         log: vec![log],
         branch_log: vec![branch],
     };
-    let game = Game::new(models);
+
+    let mut game = Game::new(models);
+    let mut action: Option<PlayerAction> = None;
 
     let [width, height] = back_buffer.size();
-    let projection = perspective(FOVY, width as f32 / height as f32, Z_NEAR, Z_FAR);
+    let projection = Matrix4::new_perspective(width as f32 / height as f32, FOVY, Z_NEAR, Z_FAR);
 
-    let view =
-        Matrix4::<f32>::look_at(Point3::new(0., 0., 4.), Point3::origin(), Vector3::unit_y());
+    let view = Matrix4::look_at_rh(
+        &Point3::new(0., 1., 3.),
+        &Point3::new(0., 1., 0.),
+        &Vector3::y_axis(),
+    );
 
     'app: loop {
         // handle events
@@ -82,8 +93,19 @@ fn main_loop(surface: GlfwSurface) {
                 WindowEvent::Close | WindowEvent::Key(Key::Escape, _, Action::Release, _) => {
                     break 'app
                 }
+                WindowEvent::Key(Key::Left, _, Action::Press, _) => {
+                    action = Some(PlayerAction::ChopLeft)
+                }
+                WindowEvent::Key(Key::Right, _, Action::Press, _) => {
+                    action = Some(PlayerAction::ChopRight)
+                }
                 _ => (),
             }
+        }
+
+        if let Some(a) = action {
+            game.update(a);
+            action = None;
         }
 
         // rendering code goes here
