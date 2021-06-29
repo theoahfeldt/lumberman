@@ -3,7 +3,7 @@ use itertools::Itertools;
 use luminance_front::context::GraphicsContext;
 use luminance_front::tess::{Interleaved, Mode, Tess, TessError};
 use luminance_front::Backend;
-use nalgebra::{Matrix4, Translation3, UnitQuaternion};
+use nalgebra::{Matrix3, Matrix4, Translation3, UnitQuaternion, Vector3};
 
 pub type VertexIndex = u32;
 
@@ -28,17 +28,19 @@ impl Mesh {
     }
 }
 
+#[derive(Clone)]
 pub struct Transform {
     pub translation: Option<Translation3<f32>>,
-    pub scale: Option<f32>,
+    pub scale: Option<[f32; 3]>,
     pub orientation: Option<UnitQuaternion<f32>>,
 }
 
 impl Transform {
     pub fn to_matrix(&self) -> Matrix4<f32> {
         let mut local_transform = Matrix4::<f32>::identity();
-        if let Some(ref scale) = self.translation {
-            //TODO
+        if let Some(ref scale) = self.scale {
+            let scale = Matrix3::from_partial_diagonal(&scale[..]);
+            local_transform = scale.to_homogeneous() * local_transform;
         }
         if let Some(ref orientation) = self.orientation {
             local_transform = orientation.to_homogeneous() * local_transform
@@ -58,6 +60,7 @@ impl Transform {
     }
 }
 
+#[derive(Clone)]
 pub struct Object<'a> {
     pub mesh: &'a Tess<Vertex, VertexIndex, (), Interleaved>,
     pub transform: Transform,

@@ -8,7 +8,7 @@ use luminance_front::pipeline::PipelineState;
 use luminance_front::render_state::RenderState;
 use luminance_glfw::GlfwSurface;
 use luminance_windowing::{WindowDim, WindowOpt};
-use nalgebra::{Matrix4, Point3, RealField, UnitQuaternion, Vector3};
+use nalgebra::{Matrix4, Point3, RealField, Translation3, UnitQuaternion, Vector3};
 use std::process::exit;
 use std::time::Instant;
 
@@ -63,14 +63,21 @@ fn main_loop(surface: GlfwSurface) {
             )),
         },
     };
-    let cylinder = object::cylinder(1., 0.5, 5).to_tess(&mut ctxt).unwrap();
     let branch = Object {
         mesh: &cylinder,
-        transform: Transform::new(),
+        transform: Transform {
+            translation: Some(Translation3::new(0.9, 0., 0.)),
+            scale: Some([0.2, 0.2, 1.]),
+            orientation: Some(UnitQuaternion::from_axis_angle(
+                &Vector3::<f32>::y_axis(),
+                RealField::frac_pi_2(),
+            )),
+        },
     };
+    let log2 = log.clone();
     let models = GameModels {
         log: vec![log],
-        branch_log: vec![branch],
+        branch_log: vec![log2, branch],
     };
 
     let mut game = Game::new(models);
