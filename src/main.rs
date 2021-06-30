@@ -1,5 +1,6 @@
 use glfw::{Action, Context as _, Key, WindowEvent};
-use lumber::game::{Game, GameModels, PlayerAction};
+use lumber::game::{Game, PlayerAction};
+use lumber::game_graphics::{self, GameModels};
 use lumber::object;
 use lumber::object::{Object, Transform};
 use lumber::semantics::{Semantics, ShaderInterface};
@@ -80,7 +81,7 @@ fn main_loop(surface: GlfwSurface) {
         branch_log: vec![log2, branch],
     };
 
-    let mut game = Game::new(models);
+    let mut game = Game::new();
     let mut action: Option<PlayerAction> = None;
 
     let [width, height] = back_buffer.size();
@@ -131,13 +132,15 @@ fn main_loop(surface: GlfwSurface) {
                         iface.set(&uni.view, view.into());
 
                         rdr_gate.render(&RenderState::default(), |mut tess_gate| {
-                            game.to_scene().iter().try_for_each(|m| {
-                                iface.set(&uni.model_transform, m.transform.to_matrix().into());
-                                m.model.iter().try_for_each(|o| {
-                                    iface.set(&uni.local_transform, o.get_transform().into());
-                                    tess_gate.render(o.mesh)
+                            game_graphics::to_scene(&game, &models)
+                                .iter()
+                                .try_for_each(|m| {
+                                    iface.set(&uni.model_transform, m.transform.to_matrix().into());
+                                    m.model.iter().try_for_each(|o| {
+                                        iface.set(&uni.local_transform, o.get_transform().into());
+                                        tess_gate.render(o.mesh)
+                                    })
                                 })
-                            })
                         })
                     })
                 },

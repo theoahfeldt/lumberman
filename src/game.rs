@@ -1,11 +1,9 @@
-use crate::object::{Object, Transform};
-use nalgebra::{RealField, Translation3, UnitQuaternion, Vector3};
 use rand::distributions::{Distribution, Standard};
 use rand::Rng;
 use std::collections::VecDeque;
 
 #[derive(Debug, Clone, PartialEq)]
-enum Branch {
+pub enum Branch {
     None,
     Left,
     Right,
@@ -26,7 +24,7 @@ enum PlayerPos {
     Right,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub enum PlayerAction {
     ChopLeft,
     ChopRight,
@@ -52,37 +50,20 @@ impl Player {
     }
 }
 
-pub type Model<'a> = Vec<Object<'a>>;
-
-pub struct GameObject<'a> {
-    pub model: &'a Model<'a>,
-    pub transform: Transform,
-}
-
-pub struct GameModels<'a> {
-    pub log: Model<'a>,
-    pub branch_log: Model<'a>,
-}
-
-pub struct Game<'a> {
+pub struct Game {
     player: Player,
-    tree: VecDeque<Branch>,
-    models: GameModels<'a>,
+    pub tree: VecDeque<Branch>,
 }
 
-impl<'a> Game<'a> {
-    pub fn new(models: GameModels<'a>) -> Self {
+impl Game {
+    pub fn new() -> Self {
         let tree: VecDeque<Branch> = vec![Branch::None; 5].into();
         let player = Player {
             pos: PlayerPos::Left,
             alive: true,
             score: 0,
         };
-        Self {
-            player,
-            tree,
-            models,
-        }
+        Self { player, tree }
     }
 
     pub fn update(&mut self, action: PlayerAction) {
@@ -104,32 +85,5 @@ impl<'a> Game<'a> {
             Branch::None
         };
         self.tree.push_back(new_branch);
-    }
-
-    pub fn to_scene(&self) -> Vec<GameObject> {
-        self.tree
-            .clone()
-            .iter()
-            .enumerate()
-            .map(|(i, val)| {
-                let model = match val {
-                    Branch::None => &self.models.log,
-                    Branch::Left | Branch::Right => &self.models.branch_log,
-                };
-                let orientation = match val {
-                    Branch::Right => Some(UnitQuaternion::from_axis_angle(
-                        &Vector3::<f32>::y_axis(),
-                        RealField::pi(),
-                    )),
-                    Branch::Left | Branch::None => None,
-                };
-                let transform = Transform {
-                    translation: Some(Translation3::new(0., i as f32, 0.)),
-                    scale: None,
-                    orientation,
-                };
-                GameObject { model, transform }
-            })
-            .collect()
     }
 }
