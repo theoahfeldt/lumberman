@@ -1,9 +1,13 @@
 use crate::semantics::{Vertex, VertexNormal, VertexPosition};
 use itertools::Itertools;
 use luminance_front::context::GraphicsContext;
+use luminance_front::pixel::NormRGB8UI;
 use luminance_front::tess::{Interleaved, Mode, Tess, TessError};
+use luminance_front::texture::GenMipmaps;
+use luminance_front::texture::Sampler;
+use luminance_front::texture::{Dim2, Texture};
 use luminance_front::Backend;
-use nalgebra::{Matrix3, Matrix4, Translation3, UnitQuaternion, Vector3};
+use nalgebra::{Matrix3, Matrix4, Translation3, UnitQuaternion};
 
 pub type VertexIndex = u32;
 
@@ -60,10 +64,13 @@ impl Transform {
     }
 }
 
+pub type RGBTexture = Texture<Dim2, NormRGB8UI>;
+
 #[derive(Clone)]
 pub struct Object<'a> {
     pub mesh: &'a Tess<Vertex, VertexIndex, (), Interleaved>,
     pub transform: Transform,
+    pub texture: Option<&'a RGBTexture>,
 }
 
 impl Object<'_> {
@@ -71,6 +78,24 @@ impl Object<'_> {
         let local_transform = self.transform.to_matrix();
         local_transform
     }
+}
+
+pub fn make_texture(
+    context: &mut impl GraphicsContext<Backend = Backend>,
+    img: &mut image::RgbImage,
+) -> RGBTexture {
+    let (width, height) = img.dimensions();
+    let texels = img.as_raw();
+
+    context
+        .new_texture_raw(
+            [width, height],
+            0,
+            Sampler::default(),
+            GenMipmaps::No,
+            texels,
+        )
+        .unwrap()
 }
 
 pub fn cylinder(height: f32, radius: f32, res: u32) -> Mesh {

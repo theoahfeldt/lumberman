@@ -63,6 +63,7 @@ fn main_loop(surface: GlfwSurface) {
                 RealField::frac_pi_2(),
             )),
         },
+        texture: None,
     };
     let branch = Object {
         mesh: &cylinder,
@@ -74,6 +75,7 @@ fn main_loop(surface: GlfwSurface) {
                 RealField::frac_pi_2(),
             )),
         },
+        texture: None,
     };
     let log2 = log.clone();
     let models = GameModels {
