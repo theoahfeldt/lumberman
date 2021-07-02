@@ -55,6 +55,7 @@ fn main_loop(surface: GlfwSurface) {
         .ignore_warnings();
 
     let cylinder = object::cylinder(1., 0.5, 20).to_tess(&mut ctxt).unwrap();
+    let angle: f32 = RealField::frac_pi_2();
     let log = Object {
         mesh: &cylinder,
         transform: Transform {
@@ -62,7 +63,7 @@ fn main_loop(surface: GlfwSurface) {
             scale: None,
             orientation: Some(UnitQuaternion::from_axis_angle(
                 &Vector3::<f32>::x_axis(),
-                RealField::frac_pi_2(),
+                -angle,
             )),
         },
         texture: None,
@@ -86,10 +87,10 @@ fn main_loop(surface: GlfwSurface) {
     };
 
     let quad = object::quad(3., 3.).to_tess(&mut ctxt).unwrap();
-    let scale = rusttype::Scale::uniform(32.0);
+    let scale = rusttype::Scale::uniform(256.0);
     let font_data = include_bytes!("../fonts/Courier New.ttf");
     let font = rusttype::Font::try_from_bytes(font_data as &[u8]).expect("Constructing font");
-    let text_img = game_graphics::make_text_image(&"Hello", font, scale);
+    let text_img = game_graphics::make_text_image(&"Missing texture", font, scale);
     let mut texture = object::make_texture(&mut ctxt, &text_img);
     let text = Object {
         mesh: &quad,

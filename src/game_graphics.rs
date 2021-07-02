@@ -2,7 +2,7 @@ use crate::{
     game::{Branch, Game},
     object::{Object, Transform},
 };
-use image::{DynamicImage, Rgb, RgbImage};
+use image::{imageops, ImageBuffer, Rgb, RgbImage};
 use nalgebra::{RealField, Translation3, UnitQuaternion, Vector3};
 use rusttype::{point, Font, Scale};
 
@@ -44,7 +44,11 @@ pub fn make_text_image(text: &str, font: Font, scale: Scale) -> RgbImage {
     };
 
     // Create a new rgb image with some padding
-    let mut image = DynamicImage::new_rgb8(glyphs_width + 40, glyphs_height + 40).into_rgb8();
+    let mut image = ImageBuffer::from_pixel(
+        glyphs_width + 40,
+        glyphs_height + 40,
+        Rgb([bg_color.x as u8, bg_color.y as u8, bg_color.z as u8]),
+    );
 
     // Loop through the glyphs in the text, positing each one on a line
     for glyph in glyphs {
@@ -63,7 +67,7 @@ pub fn make_text_image(text: &str, font: Font, scale: Scale) -> RgbImage {
         }
     }
 
-    image
+    imageops::flip_vertical(&image)
 }
 
 pub fn make_text(text: String) -> () {}
