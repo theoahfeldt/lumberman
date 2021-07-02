@@ -3,9 +3,12 @@ use lumber::game::{Game, PlayerAction};
 use lumber::game_graphics::{self, GameModels};
 use lumber::object::{self, Object, Transform};
 use lumber::semantics::{Semantics, ShaderInterface};
-use luminance_front::context::GraphicsContext;
-use luminance_front::pipeline::PipelineState;
-use luminance_front::render_state::RenderState;
+use luminance_front::{
+    blending::{Blending, Equation, Factor},
+    context::GraphicsContext,
+    pipeline::PipelineState,
+    render_state::RenderState,
+};
 use luminance_glfw::GlfwSurface;
 use luminance_windowing::{WindowDim, WindowOpt};
 use nalgebra::{Matrix4, Point3, RealField, Translation3, UnitQuaternion, Vector3};
@@ -94,6 +97,12 @@ fn main_loop(surface: GlfwSurface) {
         texture: None,
     };
 
+    let render_st = &RenderState::default().set_blending(Blending {
+        equation: Equation::Additive,
+        src: Factor::SrcAlpha,
+        dst: Factor::Zero,
+    });
+
     let mut game = Game::new();
     let mut action: Option<PlayerAction> = None;
 
@@ -146,7 +155,9 @@ fn main_loop(surface: GlfwSurface) {
                         iface.set(&uni.view, view.into());
                         iface.set(&uni.tex, bound_tex.binding());
 
-                        rdr_gate.render(&RenderState::default(), |mut tess_gate| {
+                        rdr_gate.render(&render_st, |mut tess_gate| {
+                            iface.set(&uni.model_transform, nalgebra::Matrix4::identity().into());
+                            iface.set(&uni.local_transform, nalgebra::Matrix4::identity().into());
                             tess_gate.render(text.mesh)?;
                             game_graphics::to_scene(&game, &models)
                                 .iter()
