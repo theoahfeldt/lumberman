@@ -130,24 +130,24 @@ pub fn quad(height: f32, width: f32) -> Mesh {
 }
 
 pub fn cylinder(height: f32, radius: f32, res: u32) -> Mesh {
-    let co2 = (0..res)
+    let co2 = (0..res + 1)
         .map(|n| std::f32::consts::PI * 2. * (n as f32) / (res as f32))
         .map(|a| (a.cos() * radius, a.sin() * radius));
-    let (co2_top, co2_bot) = co2.tee();
+    let (co2_top, co2_bot) = co2.enumerate().tee();
     let top = height / 2.;
     let bot = -top;
-    let top_verts = co2_top.map(|(x, y)| {
+    let top_verts = co2_top.map(|(i, (x, y))| {
         Vertex::new(
             VertexPosition::new([x, y, top]),
             VertexNormal::new([x, y, 0.]),
-            VertexUV::new([0., 0.]),
+            VertexUV::new([(i as f32) / (res as f32), 1.]),
         )
     });
-    let bot_verts = co2_bot.map(|(x, y)| {
+    let bot_verts = co2_bot.map(|(i, (x, y))| {
         Vertex::new(
             VertexPosition::new([x, y, bot]),
             VertexNormal::new([x, y, 0.]),
-            VertexUV::new([0., 0.]),
+            VertexUV::new([(i as f32) / (res as f32), 0.]),
         )
     });
     let vertices = top_verts.chain(bot_verts).collect();
