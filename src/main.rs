@@ -1,8 +1,7 @@
 use glfw::{Action, Context as _, Key, WindowEvent};
 use lumber::game::{Game, PlayerAction};
 use lumber::game_graphics::{self, GameModels};
-use lumber::object;
-use lumber::object::{Object, Transform};
+use lumber::object::{self, Object, Transform};
 use lumber::semantics::{Semantics, ShaderInterface};
 use luminance_front::context::GraphicsContext;
 use luminance_front::pipeline::PipelineState;
@@ -83,6 +82,18 @@ fn main_loop(surface: GlfwSurface) {
         branch_log: vec![log2, branch],
     };
 
+    let quad = object::quad(3., 3.).to_tess(&mut ctxt).unwrap();
+    let scale = rusttype::Scale::uniform(32.0);
+    let font_data = include_bytes!("/Library/Fonts/Comic Sans MS.ttf");
+    let font = rusttype::Font::try_from_bytes(font_data as &[u8]).expect("Constructing font");
+    let text_img = game_graphics::make_text_image(&"Hello", font, scale);
+    let mut texture = object::make_texture(&mut ctxt, &text_img);
+    let text = Object {
+        mesh: &quad,
+        transform: Transform::new(),
+        texture: None,
+    };
+
     let mut game = Game::new();
     let mut action: Option<PlayerAction> = None;
 
@@ -128,12 +139,15 @@ fn main_loop(surface: GlfwSurface) {
             .pipeline(
                 &back_buffer,
                 &PipelineState::default().set_clear_color(color),
-                |_, mut shd_gate| {
+                |pipeline, mut shd_gate| {
+                    let bound_tex = pipeline.bind_texture(&mut texture)?;
                     shd_gate.shade(&mut program, |mut iface, uni, mut rdr_gate| {
                         iface.set(&uni.projection, projection.into());
                         iface.set(&uni.view, view.into());
+                        iface.set(&uni.tex, bound_tex.binding());
 
                         rdr_gate.render(&RenderState::default(), |mut tess_gate| {
+                            tess_gate.render(text.mesh)?;
                             game_graphics::to_scene(&game, &models)
                                 .iter()
                                 .try_for_each(|m| {

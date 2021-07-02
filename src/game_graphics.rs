@@ -18,7 +18,7 @@ pub struct GameModels<'a> {
     pub branch_log: Model<'a>,
 }
 
-fn make_text_image(text: &str, font: Font, scale: Scale) -> RgbImage {
+pub fn make_text_image(text: &str, font: Font, scale: Scale) -> RgbImage {
     let bg_color = Vector3::new(255., 255., 255.);
     let color = Vector3::new(150., 0., 0.);
 

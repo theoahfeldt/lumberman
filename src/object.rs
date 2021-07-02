@@ -1,4 +1,4 @@
-use crate::semantics::{Vertex, VertexNormal, VertexPosition};
+use crate::semantics::{Vertex, VertexNormal, VertexPosition, VertexUV};
 use itertools::Itertools;
 use luminance_front::context::GraphicsContext;
 use luminance_front::pixel::NormRGB8UI;
@@ -82,7 +82,7 @@ impl Object<'_> {
 
 pub fn make_texture(
     context: &mut impl GraphicsContext<Backend = Backend>,
-    img: &mut image::RgbImage,
+    img: &image::RgbImage,
 ) -> RGBTexture {
     let (width, height) = img.dimensions();
     let texels = img.as_raw();
@@ -98,6 +98,37 @@ pub fn make_texture(
         .unwrap()
 }
 
+pub fn quad(height: f32, width: f32) -> Mesh {
+    let vertices = vec![
+        Vertex::new(
+            // Upper left
+            VertexPosition::new([-0.5 * width, 0.5 * height, 0.]),
+            VertexNormal::new([0., 0., 1.]),
+            VertexUV::new([0., 1.]),
+        ),
+        Vertex::new(
+            // Upper right
+            VertexPosition::new([0.5 * width, 0.5 * height, 0.]),
+            VertexNormal::new([0., 0., 1.]),
+            VertexUV::new([1., 1.]),
+        ),
+        Vertex::new(
+            // Lower left
+            VertexPosition::new([-0.5 * width, -0.5 * height, 0.]),
+            VertexNormal::new([0., 0., 1.]),
+            VertexUV::new([0., 0.]),
+        ),
+        Vertex::new(
+            // Lower right
+            VertexPosition::new([0.5 * width, -0.5 * height, 0.]),
+            VertexNormal::new([0., 0., 1.]),
+            VertexUV::new([1., 0.]),
+        ),
+    ];
+    let indices = vec![0, 1, 2, 1, 2, 3];
+    Mesh { vertices, indices }
+}
+
 pub fn cylinder(height: f32, radius: f32, res: u32) -> Mesh {
     let co2 = (0..res)
         .map(|n| std::f32::consts::PI * 2. * (n as f32) / (res as f32))
@@ -109,12 +140,14 @@ pub fn cylinder(height: f32, radius: f32, res: u32) -> Mesh {
         Vertex::new(
             VertexPosition::new([x, y, top]),
             VertexNormal::new([x, y, 0.]),
+            VertexUV::new([0., 0.]),
         )
     });
     let bot_verts = co2_bot.map(|(x, y)| {
         Vertex::new(
             VertexPosition::new([x, y, bot]),
             VertexNormal::new([x, y, 0.]),
+            VertexUV::new([0., 0.]),
         )
     });
     let vertices = top_verts.chain(bot_verts).collect();
