@@ -152,16 +152,7 @@ pub fn cylinder(height: f32, radius: f32, res: u32) -> Mesh {
     });
     let vertices = top_verts.chain(bot_verts).collect();
     let indices = (0..res)
-        .flat_map(|n| {
-            vec![
-                n,
-                (n + 1) % res,
-                n + res,
-                n + res,
-                (n + 1) % res + res,
-                (n + 1) % res,
-            ]
-        })
+        .flat_map(|n| vec![n, n + 1, n + res + 1, n + res + 1, n + 1 + res + 1, n + 1])
         .map(|i| i as VertexIndex)
         .collect();
     Mesh { vertices, indices }
