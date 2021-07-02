@@ -87,7 +87,7 @@ fn main_loop(surface: GlfwSurface) {
 
     let quad = object::quad(3., 3.).to_tess(&mut ctxt).unwrap();
     let scale = rusttype::Scale::uniform(32.0);
-    let font_data = include_bytes!("/Library/Fonts/Comic Sans MS.ttf");
+    let font_data = include_bytes!("../fonts/Courier New.ttf");
     let font = rusttype::Font::try_from_bytes(font_data as &[u8]).expect("Constructing font");
     let text_img = game_graphics::make_text_image(&"Hello", font, scale);
     let mut texture = object::make_texture(&mut ctxt, &text_img);
