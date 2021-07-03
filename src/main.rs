@@ -12,8 +12,7 @@ use luminance_front::{
 use luminance_glfw::GlfwSurface;
 use luminance_windowing::{WindowDim, WindowOpt};
 use nalgebra::{Matrix4, Point3, RealField, Translation3, UnitQuaternion, Vector3};
-use std::process::exit;
-use std::time::Instant;
+use std::{collections::HashMap, process::exit, time::Instant};
 
 const VS_STR: &str = include_str!("vs.glsl");
 const FS_STR: &str = include_str!("fs.glsl");
@@ -66,7 +65,7 @@ fn main_loop(surface: GlfwSurface) {
                 -angle,
             )),
         },
-        texture: None,
+        texture: &"bark",
     };
     let branch = Object {
         mesh: &cylinder,
@@ -78,7 +77,7 @@ fn main_loop(surface: GlfwSurface) {
                 RealField::frac_pi_2(),
             )),
         },
-        texture: None,
+        texture: &"temp",
     };
     let log2 = log.clone();
     let models = GameModels {
@@ -92,11 +91,21 @@ fn main_loop(surface: GlfwSurface) {
     let font = rusttype::Font::try_from_bytes(font_data as &[u8]).expect("Constructing font");
     let text_img = game_graphics::make_text_image(&"Missing texture", font, scale);
     let mut texture = object::make_texture(&mut ctxt, &text_img);
+    let img = image::io::Reader::open("../textures/pine-tree-bark-texture.jpg")
+        .unwrap()
+        .decode()
+        .unwrap()
+        .into_rgb8();
+    let mut barktxt = object::make_texture(&mut ctxt, &img);
     let text = Object {
         mesh: &quad,
         transform: Transform::new(),
-        texture: None,
+        texture: &"temp",
     };
+
+    let mut textures = HashMap::new();
+    textures.insert("temp", &mut texture);
+    textures.insert("bark", &mut barktxt);
 
     let render_st = &RenderState::default().set_blending(Blending {
         equation: Equation::Additive,
@@ -150,12 +159,9 @@ fn main_loop(surface: GlfwSurface) {
                 &back_buffer,
                 &PipelineState::default().set_clear_color(color),
                 |pipeline, mut shd_gate| {
-                    let bound_tex = pipeline.bind_texture(&mut texture)?;
                     shd_gate.shade(&mut program, |mut iface, uni, mut rdr_gate| {
                         iface.set(&uni.projection, projection.into());
                         iface.set(&uni.view, view.into());
-                        iface.set(&uni.tex, bound_tex.binding());
-
                         rdr_gate.render(&render_st, |mut tess_gate| {
                             iface.set(&uni.model_transform, nalgebra::Matrix4::identity().into());
                             iface.set(&uni.local_transform, nalgebra::Matrix4::identity().into());
@@ -165,6 +171,9 @@ fn main_loop(surface: GlfwSurface) {
                                 .try_for_each(|m| {
                                     iface.set(&uni.model_transform, m.transform.to_matrix().into());
                                     m.model.iter().try_for_each(|o| {
+                                        let bound_tex = pipeline
+                                            .bind_texture(textures.get_mut(&o.texture).unwrap())?;
+                                        iface.set(&uni.tex, bound_tex.binding());
                                         iface.set(&uni.local_transform, o.get_transform().into());
                                         tess_gate.render(o.mesh)
                                     })

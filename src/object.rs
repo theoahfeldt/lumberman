@@ -70,7 +70,7 @@ pub type RGBTexture = Texture<Dim2, NormRGB8UI>;
 pub struct Object<'a> {
     pub mesh: &'a Tess<Vertex, VertexIndex, (), Interleaved>,
     pub transform: Transform,
-    pub texture: Option<&'a RGBTexture>,
+    pub texture: &'a str,
 }
 
 impl Object<'_> {
