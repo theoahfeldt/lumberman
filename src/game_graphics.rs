@@ -1,21 +1,80 @@
 use crate::{
     game::{Branch, Game},
-    object::{Object, Transform},
+    object::{self, DefaultTess, Object, RgbTexture, Transform},
 };
 use image::{imageops, ImageBuffer, Rgb, RgbImage};
+use luminance_front::{context::GraphicsContext, Backend};
 use nalgebra::{RealField, Translation3, UnitQuaternion, Vector3};
 use rusttype::{point, Font, Scale};
+use std::collections::HashMap;
 
-pub type Model<'a> = Vec<Object<'a>>;
+pub type Model = Vec<Object>;
 
 pub struct GameObject<'a> {
-    pub model: &'a Model<'a>,
+    pub model: &'a Model,
     pub transform: Transform,
 }
 
-pub struct GameModels<'a> {
-    pub log: Model<'a>,
-    pub branch_log: Model<'a>,
+pub struct GameModels {
+    pub log: Model,
+    pub branch_log: Model,
+}
+
+pub fn load_textures(
+    ctxt: &mut impl GraphicsContext<Backend = Backend>,
+) -> HashMap<String, RgbTexture> {
+    let img = image::io::Reader::open("../textures/pine-tree-bark-texture.jpg")
+        .unwrap()
+        .decode()
+        .unwrap()
+        .into_rgb8();
+    let bark = object::make_texture(ctxt, &img);
+    let mut textures = HashMap::new();
+    textures.insert("bark".to_string(), bark);
+    textures
+}
+
+pub fn load_tesses(
+    ctxt: &mut impl GraphicsContext<Backend = Backend>,
+) -> HashMap<String, DefaultTess> {
+    let cylinder = object::cylinder(1., 0.5, 20).to_tess(ctxt).unwrap();
+    let mut objects = HashMap::new();
+    objects.insert("cylinder".to_string(), cylinder);
+    objects
+}
+
+pub fn load_models() -> GameModels {
+    let angle: f32 = RealField::frac_pi_2();
+    let log = Object {
+        tess: "cylinder".to_string(),
+        transform: Transform {
+            translation: None,
+            scale: None,
+            orientation: Some(UnitQuaternion::from_axis_angle(
+                &Vector3::<f32>::x_axis(),
+                -angle,
+            )),
+        },
+        texture: "bark".to_string(),
+    };
+    let branch = Object {
+        tess: "cylinder".to_string(),
+        transform: Transform {
+            translation: Some(Translation3::new(0.9, 0., 0.)),
+            scale: Some([0.2, 0.2, 1.]),
+            orientation: Some(UnitQuaternion::from_axis_angle(
+                &Vector3::<f32>::y_axis(),
+                RealField::frac_pi_2(),
+            )),
+        },
+        texture: "bark".to_string(),
+    };
+    let log2 = log.clone();
+
+    GameModels {
+        log: vec![log],
+        branch_log: vec![log2, branch],
+    }
 }
 
 pub fn make_text_image(text: &str, font: Font, scale: Scale) -> RgbImage {

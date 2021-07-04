@@ -1,15 +1,16 @@
 use crate::semantics::{Vertex, VertexNormal, VertexPosition, VertexUV};
 use itertools::Itertools;
-use luminance_front::context::GraphicsContext;
-use luminance_front::pixel::NormRGB8UI;
-use luminance_front::tess::{Interleaved, Mode, Tess, TessError};
-use luminance_front::texture::GenMipmaps;
-use luminance_front::texture::Sampler;
-use luminance_front::texture::{Dim2, Texture};
-use luminance_front::Backend;
+use luminance_front::{
+    context::GraphicsContext,
+    pixel::NormRGB8UI,
+    tess::{Interleaved, Mode, Tess, TessError},
+    texture::{Dim2, GenMipmaps, Sampler, Texture},
+    Backend,
+};
 use nalgebra::{Matrix3, Matrix4, Translation3, UnitQuaternion};
 
 pub type VertexIndex = u32;
+pub type DefaultTess = Tess<Vertex, VertexIndex, (), Interleaved>;
 
 pub struct Mesh {
     pub vertices: Vec<Vertex>,
@@ -17,10 +18,7 @@ pub struct Mesh {
 }
 
 impl Mesh {
-    pub fn to_tess<C>(
-        self,
-        ctxt: &mut C,
-    ) -> Result<Tess<Vertex, VertexIndex, (), Interleaved>, TessError>
+    pub fn to_tess<C>(self, ctxt: &mut C) -> Result<DefaultTess, TessError>
     where
         C: GraphicsContext<Backend = Backend>,
     {
@@ -64,16 +62,16 @@ impl Transform {
     }
 }
 
-pub type RGBTexture = Texture<Dim2, NormRGB8UI>;
+pub type RgbTexture = Texture<Dim2, NormRGB8UI>;
 
 #[derive(Clone)]
-pub struct Object<'a> {
-    pub mesh: &'a Tess<Vertex, VertexIndex, (), Interleaved>,
+pub struct Object {
+    pub tess: String,
     pub transform: Transform,
-    pub texture: &'a str,
+    pub texture: String,
 }
 
-impl Object<'_> {
+impl Object {
     pub fn get_transform(&self) -> Matrix4<f32> {
         let local_transform = self.transform.to_matrix();
         local_transform
@@ -83,7 +81,7 @@ impl Object<'_> {
 pub fn make_texture(
     context: &mut impl GraphicsContext<Backend = Backend>,
     img: &image::RgbImage,
-) -> RGBTexture {
+) -> RgbTexture {
     let (width, height) = img.dimensions();
     let texels = img.as_raw();
 

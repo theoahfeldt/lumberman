@@ -12,7 +12,7 @@ use luminance_front::{
 use luminance_glfw::GlfwSurface;
 use luminance_windowing::{WindowDim, WindowOpt};
 use nalgebra::{Matrix4, Point3, RealField, Translation3, UnitQuaternion, Vector3};
-use std::{collections::HashMap, process::exit, time::Instant};
+use std::{process::exit, time::Instant};
 
 const VS_STR: &str = include_str!("vs.glsl");
 const FS_STR: &str = include_str!("fs.glsl");
@@ -53,59 +53,13 @@ fn main_loop(surface: GlfwSurface) {
         .unwrap()
         .ignore_warnings();
 
-    let cylinder = object::cylinder(1., 0.5, 20).to_tess(&mut ctxt).unwrap();
-    let angle: f32 = RealField::frac_pi_2();
-    let log = Object {
-        mesh: &cylinder,
-        transform: Transform {
-            translation: None,
-            scale: None,
-            orientation: Some(UnitQuaternion::from_axis_angle(
-                &Vector3::<f32>::x_axis(),
-                -angle,
-            )),
-        },
-        texture: &"bark",
-    };
-    let branch = Object {
-        mesh: &cylinder,
-        transform: Transform {
-            translation: Some(Translation3::new(0.9, 0., 0.)),
-            scale: Some([0.2, 0.2, 1.]),
-            orientation: Some(UnitQuaternion::from_axis_angle(
-                &Vector3::<f32>::y_axis(),
-                RealField::frac_pi_2(),
-            )),
-        },
-        texture: &"temp",
-    };
-    let log2 = log.clone();
-    let models = GameModels {
-        log: vec![log],
-        branch_log: vec![log2, branch],
-    };
-
-    let quad = object::quad(3., 3.).to_tess(&mut ctxt).unwrap();
     let scale = rusttype::Scale::uniform(256.0);
     let font_data = include_bytes!("../fonts/Courier New.ttf");
     let font = rusttype::Font::try_from_bytes(font_data as &[u8]).expect("Constructing font");
     let text_img = game_graphics::make_text_image(&"Missing texture", font, scale);
-    let mut texture = object::make_texture(&mut ctxt, &text_img);
-    let img = image::io::Reader::open("../textures/pine-tree-bark-texture.jpg")
-        .unwrap()
-        .decode()
-        .unwrap()
-        .into_rgb8();
-    let mut barktxt = object::make_texture(&mut ctxt, &img);
-    let text = Object {
-        mesh: &quad,
-        transform: Transform::new(),
-        texture: &"temp",
-    };
-
-    let mut textures = HashMap::new();
-    textures.insert("temp", &mut texture);
-    textures.insert("bark", &mut barktxt);
+    let mut textures = game_graphics::load_textures(&mut ctxt);
+    let tesses = game_graphics::load_tesses(&mut ctxt);
+    let models = game_graphics::load_models();
 
     let render_st = &RenderState::default().set_blending(Blending {
         equation: Equation::Additive,
@@ -163,19 +117,17 @@ fn main_loop(surface: GlfwSurface) {
                         iface.set(&uni.projection, projection.into());
                         iface.set(&uni.view, view.into());
                         rdr_gate.render(&render_st, |mut tess_gate| {
-                            iface.set(&uni.model_transform, nalgebra::Matrix4::identity().into());
-                            iface.set(&uni.local_transform, nalgebra::Matrix4::identity().into());
-                            tess_gate.render(text.mesh)?;
                             game_graphics::to_scene(&game, &models)
                                 .iter()
                                 .try_for_each(|m| {
                                     iface.set(&uni.model_transform, m.transform.to_matrix().into());
                                     m.model.iter().try_for_each(|o| {
-                                        let bound_tex = pipeline
-                                            .bind_texture(textures.get_mut(&o.texture).unwrap())?;
+                                        let bound_tex = pipeline.bind_texture(
+                                            textures.get_mut(&o.texture).expect("No such texture"),
+                                        )?;
                                         iface.set(&uni.tex, bound_tex.binding());
                                         iface.set(&uni.local_transform, o.get_transform().into());
-                                        tess_gate.render(o.mesh)
+                                        tess_gate.render(tesses.get(&o.tess).unwrap())
                                     })
                                 })
                         })
