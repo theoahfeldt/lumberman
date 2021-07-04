@@ -1,8 +1,9 @@
 use glfw::{Action, Context as _, Key, WindowEvent};
-use lumber::game::{Game, PlayerAction};
-use lumber::game_graphics;
-use lumber::object;
-use lumber::semantics::{Semantics, ShaderInterface};
+use lumber::{
+    game::{Game, PlayerAction},
+    game_graphics, geometry, object,
+    semantics::{Semantics, ShaderInterface},
+};
 use luminance_front::{
     blending::{Blending, Equation, Factor},
     context::GraphicsContext,
@@ -66,8 +67,7 @@ fn main_loop(surface: GlfwSurface) {
     let font_data = include_bytes!("../fonts/Courier New.ttf");
     let font = rusttype::Font::try_from_bytes(font_data as &[u8]).expect("Constructing font");
     let text_img = game_graphics::make_text_image(&"LUMBERMAN", font, scale);
-    let mut temp_txt = object::make_texture(&mut ctxt, &text_img);
-    let quad = object::quad(0.5, 0.5).to_tess(&mut ctxt).unwrap();
+    let quad = geometry::quad(0.5, 0.5);
 
     let render_st = &RenderState::default().set_blending(Blending {
         equation: Equation::Additive,
@@ -75,9 +75,11 @@ fn main_loop(surface: GlfwSurface) {
         dst: Factor::Zero,
     });
 
-    let mut textures = game_graphics::load_textures(&mut ctxt);
-    let tesses = game_graphics::load_tesses(&mut ctxt);
-    let models = game_graphics::load_models();
+    let mut rm = object::ResourceManager::new();
+    rm.load_defaults(&mut ctxt);
+    let tess = rm.make_tess(&mut ctxt, quad);
+    let texture = rm.make_texture(&mut ctxt, &text_img);
+
     let mut game = Game::new();
     let mut action: Option<PlayerAction> = None;
 
@@ -126,9 +128,9 @@ fn main_loop(surface: GlfwSurface) {
                 |pipeline, mut shd_gate| {
                     shd_gate.shade(&mut ui_program, |mut iface, uni, mut rdr_gate| {
                         rdr_gate.render(&RenderState::default(), |mut tess_gate| {
-                            let bound_tex = pipeline.bind_texture(&mut temp_txt)?;
+                            let bound_tex = pipeline.bind_texture(rm.get_texture(&texture))?;
                             iface.set(&uni.tex, bound_tex.binding());
-                            tess_gate.render(&quad)
+                            tess_gate.render(rm.get_tess(&tess))
                         })
                     })?;
 
@@ -136,19 +138,16 @@ fn main_loop(surface: GlfwSurface) {
                         iface.set(&uni.projection, projection.into());
                         iface.set(&uni.view, view.into());
                         rdr_gate.render(&render_st, |mut tess_gate| {
-                            game_graphics::to_scene(&game, &models)
-                                .iter()
-                                .try_for_each(|m| {
-                                    iface.set(&uni.model_transform, m.transform.to_matrix().into());
-                                    m.model.iter().try_for_each(|o| {
-                                        let bound_tex = pipeline.bind_texture(
-                                            textures.get_mut(&o.texture).expect("No such texture"),
-                                        )?;
-                                        iface.set(&uni.tex, bound_tex.binding());
-                                        iface.set(&uni.local_transform, o.get_transform().into());
-                                        tess_gate.render(tesses.get(&o.tess).expect("No such tess"))
-                                    })
+                            game_graphics::make_scene(&game).iter().try_for_each(|m| {
+                                iface.set(&uni.model_transform, m.transform.to_matrix().into());
+                                rm.get_model(&m.model).clone().iter().try_for_each(|o| {
+                                    let bound_tex =
+                                        pipeline.bind_texture(rm.get_texture(&o.texture))?;
+                                    iface.set(&uni.tex, bound_tex.binding());
+                                    iface.set(&uni.local_transform, o.get_transform().into());
+                                    tess_gate.render(rm.get_tess(&o.tess))
                                 })
+                            })
                         })
                     })
                 },

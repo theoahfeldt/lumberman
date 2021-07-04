@@ -1,80 +1,15 @@
 use crate::{
     game::{Branch, Game},
-    object::{self, DefaultTess, Object, RgbTexture, Transform},
+    object::{ModelResource, ResourceManager},
+    transform::Transform,
 };
 use image::{imageops, ImageBuffer, Rgb, RgbImage};
-use luminance_front::{context::GraphicsContext, Backend};
 use nalgebra::{RealField, Translation3, UnitQuaternion, Vector3};
 use rusttype::{point, Font, Scale};
-use std::collections::HashMap;
 
-pub type Model = Vec<Object>;
-
-pub struct GameObject<'a> {
-    pub model: &'a Model,
+pub struct GameObject {
+    pub model: ModelResource,
     pub transform: Transform,
-}
-
-pub struct GameModels {
-    pub log: Model,
-    pub branch_log: Model,
-}
-
-pub fn load_textures(
-    ctxt: &mut impl GraphicsContext<Backend = Backend>,
-) -> HashMap<String, RgbTexture> {
-    let img = image::io::Reader::open("../textures/pine-tree-bark-texture.jpg")
-        .unwrap()
-        .decode()
-        .unwrap()
-        .into_rgb8();
-    let bark = object::make_texture(ctxt, &img);
-    let mut textures = HashMap::new();
-    textures.insert("bark".to_string(), bark);
-    textures
-}
-
-pub fn load_tesses(
-    ctxt: &mut impl GraphicsContext<Backend = Backend>,
-) -> HashMap<String, DefaultTess> {
-    let cylinder = object::cylinder(1., 0.5, 20).to_tess(ctxt).unwrap();
-    let mut objects = HashMap::new();
-    objects.insert("cylinder".to_string(), cylinder);
-    objects
-}
-
-pub fn load_models() -> GameModels {
-    let angle: f32 = RealField::frac_pi_2();
-    let log = Object {
-        tess: "cylinder".to_string(),
-        transform: Transform {
-            translation: None,
-            scale: None,
-            orientation: Some(UnitQuaternion::from_axis_angle(
-                &Vector3::<f32>::x_axis(),
-                -angle,
-            )),
-        },
-        texture: "bark".to_string(),
-    };
-    let branch = Object {
-        tess: "cylinder".to_string(),
-        transform: Transform {
-            translation: Some(Translation3::new(0.9, 0., 0.)),
-            scale: Some([0.2, 0.2, 1.]),
-            orientation: Some(UnitQuaternion::from_axis_angle(
-                &Vector3::<f32>::y_axis(),
-                RealField::frac_pi_2(),
-            )),
-        },
-        texture: "bark".to_string(),
-    };
-    let log2 = log.clone();
-
-    GameModels {
-        log: vec![log],
-        branch_log: vec![log2, branch],
-    }
 }
 
 pub fn make_text_image(text: &str, font: Font, scale: Scale) -> RgbImage {
@@ -131,17 +66,17 @@ pub fn make_text_image(text: &str, font: Font, scale: Scale) -> RgbImage {
 
 pub fn make_text(text: String) -> () {}
 
-pub fn to_scene<'a>(game: &Game, models: &'a GameModels) -> Vec<GameObject<'a>> {
+pub fn make_scene(game: &Game) -> Vec<GameObject> {
     game.tree
         .clone()
         .iter()
         .enumerate()
         .map(|(i, val)| {
             let model = match val {
-                Branch::None => &models.log,
-                Branch::Left | Branch::Right => &models.branch_log,
+                Branch::None => ResourceManager::log(),
+                Branch::Left | Branch::Right => ResourceManager::branch_log(),
             };
-            let orientation = match val {
+            let rotation = match val {
                 Branch::Right => Some(UnitQuaternion::from_axis_angle(
                     &Vector3::<f32>::y_axis(),
                     RealField::pi(),
@@ -151,9 +86,22 @@ pub fn to_scene<'a>(game: &Game, models: &'a GameModels) -> Vec<GameObject<'a>> 
             let transform = Transform {
                 translation: Some(Translation3::new(0., i as f32, 0.)),
                 scale: None,
-                orientation,
+                rotation,
             };
             GameObject { model, transform }
         })
         .collect()
 }
+
+// pub fn make_ui(
+//     game: &Game,
+//     textures: &mut HashMap<String, DefaultTess>,
+//     ctxt: &mut impl GraphicsContext<Backend = Backend>,
+// ) -> Vec<Object2> {
+//     let scale = rusttype::Scale::uniform(256.0);
+//     let font_data = include_bytes!("../fonts/Courier New.ttf");
+//     let font = rusttype::Font::try_from_bytes(font_data as &[u8]).expect("Constructing font");
+//     let text_img = make_text_image(&"LUMBERMAN", font, scale);
+//     let mut temp_txt = object::make_texture(ctxt, &text_img);
+//     let quad = object::quad(0.5, 0.5).make_tess(ctxt);
+// }

@@ -1,13 +1,20 @@
-use crate::semantics::{Vertex, VertexNormal, VertexPosition, VertexUV};
-use itertools::Itertools;
+use crate::{
+    geometry,
+    semantics::Vertex,
+    transform::{Transform, Transform2},
+};
+use image::RgbImage;
 use luminance_front::{
     context::GraphicsContext,
     pixel::NormRGB8UI,
-    tess::{Interleaved, Mode, Tess, TessError},
+    tess::{Interleaved, Mode, Tess},
     texture::{Dim2, GenMipmaps, Sampler, Texture},
     Backend,
 };
-use nalgebra::{Matrix3, Matrix4, Translation3, UnitQuaternion};
+use nalgebra::{
+    Matrix3, Matrix4, RealField, Rotation2, Translation2, Translation3, UnitQuaternion, Vector3,
+};
+use std::collections::HashMap;
 
 pub type VertexIndex = u32;
 pub type DefaultTess = Tess<Vertex, VertexIndex, (), Interleaved>;
@@ -18,7 +25,7 @@ pub struct Mesh {
 }
 
 impl Mesh {
-    pub fn to_tess<C>(self, ctxt: &mut C) -> Result<DefaultTess, TessError>
+    pub fn make_tess<C>(self, ctxt: &mut C) -> DefaultTess
     where
         C: GraphicsContext<Backend = Backend>,
     {
@@ -27,48 +34,32 @@ impl Mesh {
             .set_vertices(self.vertices)
             .set_indices(self.indices)
             .build()
-    }
-}
-
-#[derive(Clone)]
-pub struct Transform {
-    pub translation: Option<Translation3<f32>>,
-    pub scale: Option<[f32; 3]>,
-    pub orientation: Option<UnitQuaternion<f32>>,
-}
-
-impl Transform {
-    pub fn to_matrix(&self) -> Matrix4<f32> {
-        let mut local_transform = Matrix4::<f32>::identity();
-        if let Some(ref scale) = self.scale {
-            let scale = Matrix3::from_partial_diagonal(&scale[..]);
-            local_transform = scale.to_homogeneous() * local_transform;
-        }
-        if let Some(ref orientation) = self.orientation {
-            local_transform = orientation.to_homogeneous() * local_transform
-        }
-        if let Some(ref translation) = self.translation {
-            local_transform = translation.to_homogeneous() * local_transform
-        }
-        local_transform
-    }
-
-    pub fn new() -> Self {
-        Self {
-            translation: None,
-            scale: None,
-            orientation: None,
-        }
+            .expect("Building tess")
     }
 }
 
 pub type RgbTexture = Texture<Dim2, NormRGB8UI>;
 
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct TessResource {
+    idx: u32,
+}
+
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct TextureResource {
+    idx: u32,
+}
+
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct ModelResource {
+    idx: u32,
+}
+
 #[derive(Clone)]
 pub struct Object {
-    pub tess: String,
+    pub tess: TessResource,
+    pub texture: TextureResource,
     pub transform: Transform,
-    pub texture: String,
 }
 
 impl Object {
@@ -78,7 +69,22 @@ impl Object {
     }
 }
 
-pub fn make_texture(
+pub struct Object2 {
+    pub tess: TessResource,
+    pub texture: TextureResource,
+    pub transform: Transform2,
+}
+
+impl Object2 {
+    pub fn get_transform(&self) -> Matrix3<f32> {
+        let local_transform = self.transform.to_matrix();
+        local_transform
+    }
+}
+
+pub type Model = Vec<Object>;
+
+fn make_texture(
     context: &mut impl GraphicsContext<Backend = Backend>,
     img: &image::RgbImage,
 ) -> RgbTexture {
@@ -96,62 +102,143 @@ pub fn make_texture(
         .unwrap()
 }
 
-pub fn quad(height: f32, width: f32) -> Mesh {
-    let vertices = vec![
-        Vertex::new(
-            // Upper left
-            VertexPosition::new([-0.5 * width, 0.5 * height, 0.]),
-            VertexNormal::new([0., 0., 1.]),
-            VertexUV::new([0., 1.]),
-        ),
-        Vertex::new(
-            // Upper right
-            VertexPosition::new([0.5 * width, 0.5 * height, 0.]),
-            VertexNormal::new([0., 0., 1.]),
-            VertexUV::new([1., 1.]),
-        ),
-        Vertex::new(
-            // Lower left
-            VertexPosition::new([-0.5 * width, -0.5 * height, 0.]),
-            VertexNormal::new([0., 0., 1.]),
-            VertexUV::new([0., 0.]),
-        ),
-        Vertex::new(
-            // Lower right
-            VertexPosition::new([0.5 * width, -0.5 * height, 0.]),
-            VertexNormal::new([0., 0., 1.]),
-            VertexUV::new([1., 0.]),
-        ),
-    ];
-    let indices = vec![0, 1, 2, 1, 2, 3];
-    Mesh { vertices, indices }
+pub struct ResourceManager {
+    tesses: HashMap<u32, DefaultTess>,
+    textures: HashMap<u32, RgbTexture>,
+    models: HashMap<u32, Model>,
+    tess_counter: u32,
+    texture_counter: u32,
+    model_counter: u32,
 }
 
-pub fn cylinder(height: f32, radius: f32, res: u32) -> Mesh {
-    let co2 = (0..res + 1)
-        .map(|n| std::f32::consts::PI * 2. * (n as f32) / (res as f32))
-        .map(|a| (a.cos() * radius, a.sin() * radius));
-    let (co2_top, co2_bot) = co2.enumerate().tee();
-    let top = height / 2.;
-    let bot = -top;
-    let top_verts = co2_top.map(|(i, (x, y))| {
-        Vertex::new(
-            VertexPosition::new([x, y, top]),
-            VertexNormal::new([x, y, 0.]),
-            VertexUV::new([(i as f32) / (res as f32), 1.]),
-        )
-    });
-    let bot_verts = co2_bot.map(|(i, (x, y))| {
-        Vertex::new(
-            VertexPosition::new([x, y, bot]),
-            VertexNormal::new([x, y, 0.]),
-            VertexUV::new([(i as f32) / (res as f32), 0.]),
-        )
-    });
-    let vertices = top_verts.chain(bot_verts).collect();
-    let indices = (0..res)
-        .flat_map(|n| vec![n, n + 1, n + res + 1, n + res + 1, n + 1 + res + 1, n + 1])
-        .map(|i| i as VertexIndex)
-        .collect();
-    Mesh { vertices, indices }
+impl ResourceManager {
+    pub fn new() -> Self {
+        Self {
+            tesses: HashMap::new(),
+            textures: HashMap::new(),
+            models: HashMap::new(),
+            tess_counter: 0,
+            texture_counter: 0,
+            model_counter: 0,
+        }
+    }
+
+    fn add_tess(&mut self, tess: DefaultTess) -> TessResource {
+        self.tesses.insert(self.tess_counter, tess);
+        let result = TessResource {
+            idx: self.tess_counter,
+        };
+        self.tess_counter += 1;
+        result
+    }
+
+    fn add_texture(&mut self, texture: RgbTexture) -> TextureResource {
+        self.textures.insert(self.texture_counter, texture);
+        let result = TextureResource {
+            idx: self.texture_counter,
+        };
+        self.texture_counter += 1;
+        result
+    }
+
+    fn add_model(&mut self, model: Model) -> ModelResource {
+        self.models.insert(self.model_counter, model);
+        let result = ModelResource {
+            idx: self.model_counter,
+        };
+        self.model_counter += 1;
+        result
+    }
+
+    pub fn log() -> ModelResource {
+        ModelResource { idx: 0 }
+    }
+
+    pub fn branch_log() -> ModelResource {
+        ModelResource { idx: 1 }
+    }
+
+    pub fn get_tess(&self, tess: &TessResource) -> &DefaultTess {
+        self.tesses.get(&tess.idx).unwrap()
+    }
+
+    pub fn get_texture(&mut self, texture: &TextureResource) -> &mut RgbTexture {
+        self.textures.get_mut(&texture.idx).unwrap()
+    }
+
+    pub fn get_model(&self, model: &ModelResource) -> &Model {
+        self.models.get(&model.idx).unwrap()
+    }
+
+    fn load_tesses(&mut self, ctxt: &mut impl GraphicsContext<Backend = Backend>) {
+        let cylinder = geometry::cylinder(1., 0.5, 20).make_tess(ctxt);
+        self.add_tess(cylinder);
+    }
+
+    fn load_textures(&mut self, ctxt: &mut impl GraphicsContext<Backend = Backend>) {
+        let img = image::io::Reader::open("../textures/pine-tree-bark-texture.jpg")
+            .unwrap()
+            .decode()
+            .unwrap()
+            .into_rgb8();
+        let bark = make_texture(ctxt, &img);
+        self.add_texture(bark);
+    }
+
+    fn load_models(&mut self) {
+        let angle: f32 = RealField::frac_pi_2();
+        let log = Object {
+            tess: TessResource { idx: 0 },
+            texture: TextureResource { idx: 0 },
+            transform: Transform {
+                translation: None,
+                scale: None,
+                rotation: Some(UnitQuaternion::from_axis_angle(
+                    &Vector3::<f32>::x_axis(),
+                    -angle,
+                )),
+            },
+        };
+        let branch = Object {
+            tess: TessResource { idx: 0 },
+            texture: TextureResource { idx: 0 },
+            transform: Transform {
+                translation: Some(Translation3::new(0.9, 0., 0.)),
+                scale: Some([0.2, 0.2, 1.]),
+                rotation: Some(UnitQuaternion::from_axis_angle(
+                    &Vector3::<f32>::y_axis(),
+                    RealField::frac_pi_2(),
+                )),
+            },
+        };
+        let log2 = log.clone();
+        self.add_model(vec![log]);
+        self.add_model(vec![log2, branch]);
+    }
+
+    pub fn load_defaults(&mut self, ctxt: &mut impl GraphicsContext<Backend = Backend>) {
+        self.load_tesses(ctxt);
+        self.load_textures(ctxt);
+        self.load_models();
+    }
+
+    pub fn make_tess(
+        &mut self,
+        ctxt: &mut impl GraphicsContext<Backend = Backend>,
+        mesh: Mesh,
+    ) -> TessResource {
+        self.add_tess(mesh.make_tess(ctxt))
+    }
+
+    pub fn make_texture(
+        &mut self,
+        ctxt: &mut impl GraphicsContext<Backend = Backend>,
+        img: &RgbImage,
+    ) -> TextureResource {
+        self.add_texture(make_texture(ctxt, img))
+    }
+
+    pub fn make_model(&mut self, model: Model) -> ModelResource {
+        self.add_model(model)
+    }
 }
