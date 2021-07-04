@@ -1,7 +1,7 @@
 use glfw::{Action, Context as _, Key, WindowEvent};
 use lumber::game::{Game, PlayerAction};
-use lumber::game_graphics::{self, GameModels};
-use lumber::object::{self, Object, Transform};
+use lumber::game_graphics;
+use lumber::object;
 use lumber::semantics::{Semantics, ShaderInterface};
 use luminance_front::{
     blending::{Blending, Equation, Factor},
@@ -11,11 +11,14 @@ use luminance_front::{
 };
 use luminance_glfw::GlfwSurface;
 use luminance_windowing::{WindowDim, WindowOpt};
-use nalgebra::{Matrix4, Point3, RealField, Translation3, UnitQuaternion, Vector3};
+use nalgebra::{Matrix4, Point3, Vector3};
 use std::{process::exit, time::Instant};
 
 const VS_STR: &str = include_str!("vs.glsl");
 const FS_STR: &str = include_str!("fs.glsl");
+
+const UI_VS_STR: &str = include_str!("ui_vs.glsl");
+const UI_FS_STR: &str = include_str!("ui_fs.glsl");
 
 const FOVY: f32 = std::f32::consts::FRAC_PI_2;
 const Z_NEAR: f32 = 0.1;
@@ -53,13 +56,18 @@ fn main_loop(surface: GlfwSurface) {
         .unwrap()
         .ignore_warnings();
 
+    let mut ui_program = ctxt
+        .new_shader_program::<Semantics, (), ShaderInterface>()
+        .from_strings(UI_VS_STR, None, None, UI_FS_STR)
+        .unwrap()
+        .ignore_warnings();
+
     let scale = rusttype::Scale::uniform(256.0);
     let font_data = include_bytes!("../fonts/Courier New.ttf");
     let font = rusttype::Font::try_from_bytes(font_data as &[u8]).expect("Constructing font");
-    let text_img = game_graphics::make_text_image(&"Missing texture", font, scale);
-    let mut textures = game_graphics::load_textures(&mut ctxt);
-    let tesses = game_graphics::load_tesses(&mut ctxt);
-    let models = game_graphics::load_models();
+    let text_img = game_graphics::make_text_image(&"LUMBERMAN", font, scale);
+    let mut temp_txt = object::make_texture(&mut ctxt, &text_img);
+    let quad = object::quad(0.5, 0.5).to_tess(&mut ctxt).unwrap();
 
     let render_st = &RenderState::default().set_blending(Blending {
         equation: Equation::Additive,
@@ -67,6 +75,9 @@ fn main_loop(surface: GlfwSurface) {
         dst: Factor::Zero,
     });
 
+    let mut textures = game_graphics::load_textures(&mut ctxt);
+    let tesses = game_graphics::load_tesses(&mut ctxt);
+    let models = game_graphics::load_models();
     let mut game = Game::new();
     let mut action: Option<PlayerAction> = None;
 
@@ -113,6 +124,14 @@ fn main_loop(surface: GlfwSurface) {
                 &back_buffer,
                 &PipelineState::default().set_clear_color(color),
                 |pipeline, mut shd_gate| {
+                    shd_gate.shade(&mut ui_program, |mut iface, uni, mut rdr_gate| {
+                        rdr_gate.render(&RenderState::default(), |mut tess_gate| {
+                            let bound_tex = pipeline.bind_texture(&mut temp_txt)?;
+                            iface.set(&uni.tex, bound_tex.binding());
+                            tess_gate.render(&quad)
+                        })
+                    })?;
+
                     shd_gate.shade(&mut program, |mut iface, uni, mut rdr_gate| {
                         iface.set(&uni.projection, projection.into());
                         iface.set(&uni.view, view.into());
@@ -127,7 +146,7 @@ fn main_loop(surface: GlfwSurface) {
                                         )?;
                                         iface.set(&uni.tex, bound_tex.binding());
                                         iface.set(&uni.local_transform, o.get_transform().into());
-                                        tess_gate.render(tesses.get(&o.tess).unwrap())
+                                        tess_gate.render(tesses.get(&o.tess).expect("No such tess"))
                                     })
                                 })
                         })
