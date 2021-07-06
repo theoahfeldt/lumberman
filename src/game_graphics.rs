@@ -1,7 +1,7 @@
 use crate::{
     game::{Branch, Game},
-    object::{ModelResource, ResourceManager},
-    transform::Transform,
+    object::{Model2Resource, ModelResource, ResourceManager},
+    transform::{Transform, Transform2},
 };
 use image::{imageops, ImageBuffer, Rgb, RgbImage};
 use nalgebra::{RealField, Translation3, UnitQuaternion, Vector3};
@@ -10,6 +10,11 @@ use rusttype::{point, Font, Scale};
 pub struct GameObject {
     pub model: ModelResource,
     pub transform: Transform,
+}
+
+pub struct UIObject {
+    pub model: Model2Resource,
+    pub transform: Transform2,
 }
 
 pub fn make_text_image(text: &str, font: Font, scale: Scale) -> RgbImage {

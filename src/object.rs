@@ -55,6 +55,11 @@ pub struct ModelResource {
     idx: u32,
 }
 
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct Model2Resource {
+    idx: u32,
+}
+
 #[derive(Clone)]
 pub struct Object {
     pub tess: TessResource,
@@ -64,8 +69,7 @@ pub struct Object {
 
 impl Object {
     pub fn get_transform(&self) -> Matrix4<f32> {
-        let local_transform = self.transform.to_matrix();
-        local_transform
+        self.transform.to_matrix()
     }
 }
 
@@ -77,12 +81,12 @@ pub struct Object2 {
 
 impl Object2 {
     pub fn get_transform(&self) -> Matrix3<f32> {
-        let local_transform = self.transform.to_matrix();
-        local_transform
+        self.transform.to_matrix()
     }
 }
 
 pub type Model = Vec<Object>;
+pub type Model2 = Vec<Object2>;
 
 fn make_texture(
     context: &mut impl GraphicsContext<Backend = Backend>,
@@ -106,9 +110,11 @@ pub struct ResourceManager {
     tesses: HashMap<u32, DefaultTess>,
     textures: HashMap<u32, RgbTexture>,
     models: HashMap<u32, Model>,
+    model2s: HashMap<u32, Model2>,
     tess_counter: u32,
     texture_counter: u32,
     model_counter: u32,
+    model2_counter: u32,
 }
 
 impl ResourceManager {
@@ -117,9 +123,11 @@ impl ResourceManager {
             tesses: HashMap::new(),
             textures: HashMap::new(),
             models: HashMap::new(),
+            model2s: HashMap::new(),
             tess_counter: 0,
             texture_counter: 0,
             model_counter: 0,
+            model2_counter: 0,
         }
     }
 
@@ -150,6 +158,15 @@ impl ResourceManager {
         result
     }
 
+    fn add_model2(&mut self, model: Model2) -> Model2Resource {
+        self.model2s.insert(self.model2_counter, model);
+        let result = Model2Resource {
+            idx: self.model2_counter,
+        };
+        self.model2_counter += 1;
+        result
+    }
+
     pub fn log() -> ModelResource {
         ModelResource { idx: 0 }
     }
@@ -170,13 +187,17 @@ impl ResourceManager {
         self.models.get(&model.idx).unwrap()
     }
 
+    pub fn get_model2(&self, model: &Model2Resource) -> &Model2 {
+        self.model2s.get(&model.idx).unwrap()
+    }
+
     fn load_tesses(&mut self, ctxt: &mut impl GraphicsContext<Backend = Backend>) {
         let cylinder = geometry::cylinder(1., 0.5, 20).make_tess(ctxt);
         self.add_tess(cylinder);
     }
 
     fn load_textures(&mut self, ctxt: &mut impl GraphicsContext<Backend = Backend>) {
-        let img = image::io::Reader::open("../textures/pine-tree-bark-texture.jpg")
+        let img = image::io::Reader::open("textures/pine-tree-bark-texture.jpg")
             .unwrap()
             .decode()
             .unwrap()
@@ -240,5 +261,9 @@ impl ResourceManager {
 
     pub fn make_model(&mut self, model: Model) -> ModelResource {
         self.add_model(model)
+    }
+
+    pub fn make_model2(&mut self, model: Model2) -> Model2Resource {
+        self.add_model2(model)
     }
 }
