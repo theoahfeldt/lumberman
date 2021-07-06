@@ -73,6 +73,7 @@ impl Object {
     }
 }
 
+#[derive(Clone)]
 pub struct Object2 {
     pub tess: TessResource,
     pub texture: TextureResource,
@@ -80,7 +81,7 @@ pub struct Object2 {
 }
 
 impl Object2 {
-    pub fn get_transform(&self) -> Matrix3<f32> {
+    pub fn get_transform(&self) -> Matrix4<f32> {
         self.transform.to_matrix()
     }
 }
@@ -265,5 +266,31 @@ impl ResourceManager {
 
     pub fn make_model2(&mut self, model: Model2) -> Model2Resource {
         self.add_model2(model)
+    }
+
+    pub fn update_tess(
+        &mut self,
+        resource: TessResource,
+        ctxt: &mut impl GraphicsContext<Backend = Backend>,
+        mesh: Mesh,
+    ) {
+        self.tesses.insert(resource.idx, mesh.make_tess(ctxt));
+    }
+
+    pub fn update_texture(
+        &mut self,
+        resource: TextureResource,
+        ctxt: &mut impl GraphicsContext<Backend = Backend>,
+        img: &RgbImage,
+    ) {
+        self.textures.insert(resource.idx, make_texture(ctxt, img));
+    }
+
+    pub fn update_model(&mut self, resource: ModelResource, model: Model) {
+        self.models.insert(resource.idx, model);
+    }
+
+    pub fn update_model2(&mut self, resource: Model2Resource, model: Model2) {
+        self.model2s.insert(resource.idx, model);
     }
 }

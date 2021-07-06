@@ -98,15 +98,6 @@ pub fn make_scene(game: &Game) -> Vec<GameObject> {
         .collect()
 }
 
-// pub fn make_ui(
-//     game: &Game,
-//     textures: &mut HashMap<String, DefaultTess>,
-//     ctxt: &mut impl GraphicsContext<Backend = Backend>,
-// ) -> Vec<Object2> {
-//     let scale = rusttype::Scale::uniform(256.0);
-//     let font_data = include_bytes!("../fonts/Courier New.ttf");
-//     let font = rusttype::Font::try_from_bytes(font_data as &[u8]).expect("Constructing font");
-//     let text_img = make_text_image(&"LUMBERMAN", font, scale);
-//     let mut temp_txt = object::make_texture(ctxt, &text_img);
-//     let quad = object::quad(0.5, 0.5).make_tess(ctxt);
-// }
+pub fn make_ui(game: &Game) -> Vec<UIObject> {
+    vec![]
+}

@@ -128,9 +128,16 @@ fn main_loop(surface: GlfwSurface) {
                 |pipeline, mut shd_gate| {
                     shd_gate.shade(&mut ui_program, |mut iface, uni, mut rdr_gate| {
                         rdr_gate.render(&RenderState::default(), |mut tess_gate| {
-                            let bound_tex = pipeline.bind_texture(rm.get_texture(&texture))?;
-                            iface.set(&uni.tex, bound_tex.binding());
-                            tess_gate.render(rm.get_tess(&tess))
+                            game_graphics::make_ui(&game).iter().try_for_each(|ui| {
+                                iface.set(&uni.model_transform, ui.transform.to_matrix().into());
+                                rm.get_model2(&ui.model).clone().iter().try_for_each(|o| {
+                                    let bound_tex =
+                                        pipeline.bind_texture(rm.get_texture(&o.texture))?;
+                                    iface.set(&uni.tex, bound_tex.binding());
+                                    iface.set(&uni.local_transform, o.get_transform().into());
+                                    tess_gate.render(rm.get_tess(&o.tess))
+                                })
+                            })
                         })
                     })?;
 
@@ -138,9 +145,9 @@ fn main_loop(surface: GlfwSurface) {
                         iface.set(&uni.projection, projection.into());
                         iface.set(&uni.view, view.into());
                         rdr_gate.render(&render_st, |mut tess_gate| {
-                            game_graphics::make_scene(&game).iter().try_for_each(|m| {
-                                iface.set(&uni.model_transform, m.transform.to_matrix().into());
-                                rm.get_model(&m.model).clone().iter().try_for_each(|o| {
+                            game_graphics::make_scene(&game).iter().try_for_each(|gm| {
+                                iface.set(&uni.model_transform, gm.transform.to_matrix().into());
+                                rm.get_model(&gm.model).clone().iter().try_for_each(|o| {
                                     let bound_tex =
                                         pipeline.bind_texture(rm.get_texture(&o.texture))?;
                                     iface.set(&uni.tex, bound_tex.binding());
