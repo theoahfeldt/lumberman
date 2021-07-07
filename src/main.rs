@@ -1,8 +1,8 @@
 use glfw::{Action, Context as _, Key, WindowEvent};
 use lumber::{
     game::{Game, PlayerAction},
-    game_graphics::{self, GameResources},
-    geometry, object,
+    game_graphics::{self, GameResources, UIResources},
+    object,
     semantics::{Semantics, ShaderInterface},
 };
 use luminance_front::{
@@ -64,12 +64,6 @@ fn main_loop(surface: GlfwSurface) {
         .unwrap()
         .ignore_warnings();
 
-    let scale = rusttype::Scale::uniform(256.0);
-    let font_data = include_bytes!("../fonts/Courier New.ttf");
-    let font = rusttype::Font::try_from_bytes(font_data as &[u8]).expect("Constructing font");
-    let text_img = game_graphics::make_text_image(&"LUMBERMAN", font, scale);
-    let quad = geometry::quad(0.5, 0.5);
-
     let render_st = &RenderState::default().set_blending(Blending {
         equation: Equation::Additive,
         src: Factor::SrcAlpha,
@@ -77,10 +71,8 @@ fn main_loop(surface: GlfwSurface) {
     });
 
     let mut rm = object::ResourceManager::new();
-    let resources = GameResources::new(&mut rm, &mut ctxt);
-
-    let tess = rm.make_tess(&mut ctxt, quad);
-    let texture = rm.make_texture(&mut ctxt, &text_img);
+    let game_resources = GameResources::new(&mut rm, &mut ctxt);
+    let ui_resources = UIResources::new(&mut rm, &mut ctxt);
 
     let mut game = Game::new();
     let mut action: Option<PlayerAction> = None;
@@ -122,6 +114,8 @@ fn main_loop(surface: GlfwSurface) {
         let t = start_t.elapsed().as_millis() as f32 * 1e-3;
         let color = [t.cos(), t.sin(), 0.5, 1.];
 
+        let ui_objects = game_graphics::make_ui(&game, &ui_resources, &mut rm, &mut ctxt);
+        let game_objects = game_graphics::make_scene(&game, &game_resources);
         let render = ctxt
             .new_pipeline_gate()
             .pipeline(
@@ -130,7 +124,7 @@ fn main_loop(surface: GlfwSurface) {
                 |pipeline, mut shd_gate| {
                     shd_gate.shade(&mut ui_program, |mut iface, uni, mut rdr_gate| {
                         rdr_gate.render(&RenderState::default(), |mut tess_gate| {
-                            game_graphics::make_ui(&game).iter().try_for_each(|ui| {
+                            ui_objects.iter().try_for_each(|ui| {
                                 iface.set(&uni.model_transform, ui.transform.to_matrix().into());
                                 rm.get_model2(&ui.model).clone().iter().try_for_each(|o| {
                                     let bound_tex =
@@ -147,19 +141,16 @@ fn main_loop(surface: GlfwSurface) {
                         iface.set(&uni.projection, projection.into());
                         iface.set(&uni.view, view.into());
                         rdr_gate.render(&render_st, |mut tess_gate| {
-                            game_graphics::make_scene(&game, &resources)
-                                .iter()
-                                .try_for_each(|gm| {
-                                    iface
-                                        .set(&uni.model_transform, gm.transform.to_matrix().into());
-                                    rm.get_model(&gm.model).clone().iter().try_for_each(|o| {
-                                        let bound_tex =
-                                            pipeline.bind_texture(rm.get_texture(&o.texture))?;
-                                        iface.set(&uni.tex, bound_tex.binding());
-                                        iface.set(&uni.local_transform, o.get_transform().into());
-                                        tess_gate.render(rm.get_tess(&o.tess))
-                                    })
+                            game_objects.iter().try_for_each(|gm| {
+                                iface.set(&uni.model_transform, gm.transform.to_matrix().into());
+                                rm.get_model(&gm.model).clone().iter().try_for_each(|o| {
+                                    let bound_tex =
+                                        pipeline.bind_texture(rm.get_texture(&o.texture))?;
+                                    iface.set(&uni.tex, bound_tex.binding());
+                                    iface.set(&uni.local_transform, o.get_transform().into());
+                                    tess_gate.render(rm.get_tess(&o.tess))
                                 })
+                            })
                         })
                     })
                 },

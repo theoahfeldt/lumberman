@@ -1,7 +1,7 @@
 use crate::{
     game::{Branch, Game},
     geometry,
-    object::{Model2Resource, ModelResource, Object, ResourceManager},
+    object::{Model2Resource, ModelResource, Object, Object2, ResourceManager, TextureResource},
     transform::{Transform, Transform2},
 };
 use image::{imageops, ImageBuffer, Rgb, RgbImage};
@@ -23,6 +23,35 @@ pub struct UIObject {
 pub struct GameResources {
     pub log: ModelResource,
     pub branch_log: ModelResource,
+}
+
+pub struct UIResources {
+    pub score_texture: TextureResource,
+    pub score_model: Model2Resource,
+}
+
+impl UIResources {
+    pub fn new(
+        rm: &mut ResourceManager,
+        ctxt: &mut impl GraphicsContext<Backend = Backend>,
+    ) -> Self {
+        let score_img = make_text("0");
+        let quad = geometry::quad(0.5, 0.5);
+
+        let tess = rm.make_tess(ctxt, quad);
+        let score_texture = rm.make_texture(ctxt, &score_img);
+        let transform = Transform2::new();
+        let score_object = Object2 {
+            tess,
+            texture: score_texture.clone(),
+            transform,
+        };
+        let score_model = rm.make_model2(vec![score_object]);
+        Self {
+            score_texture,
+            score_model,
+        }
+    }
 }
 
 impl GameResources {
@@ -111,7 +140,7 @@ pub fn make_text_image(text: &str, font: Font, scale: Scale) -> RgbImage {
                 let color_vec = bg_color * (1. - v) + color * v;
                 image.put_pixel(
                     // Offset the position by the glyph bounding box
-                    x + bounding_box.min.x as u32,
+                    x + bounding_box.min.x as u32 - 20,
                     y + bounding_box.min.y as u32,
                     // Turn the coverage into an alpha value
                     Rgb([color_vec.x as u8, color_vec.y as u8, color_vec.z as u8]),
@@ -123,7 +152,12 @@ pub fn make_text_image(text: &str, font: Font, scale: Scale) -> RgbImage {
     imageops::flip_vertical(&image)
 }
 
-pub fn make_text(text: String) -> () {}
+pub fn make_text(text: &str) -> RgbImage {
+    let scale = rusttype::Scale::uniform(256.0);
+    let font_data = include_bytes!("../fonts/Courier New.ttf");
+    let font = rusttype::Font::try_from_bytes(font_data as &[u8]).expect("Constructing font");
+    make_text_image(text, font, scale)
+}
 
 pub fn make_scene(game: &Game, resources: &GameResources) -> Vec<GameObject> {
     game.tree
@@ -152,7 +186,17 @@ pub fn make_scene(game: &Game, resources: &GameResources) -> Vec<GameObject> {
         .collect()
 }
 
-pub fn make_ui(game: &Game) -> Vec<UIObject> {
+pub fn make_ui(
+    game: &Game,
+    resources: &UIResources,
+    rm: &mut ResourceManager,
+    ctxt: &mut impl GraphicsContext<Backend = Backend>,
+) -> Vec<UIObject> {
     let score = game.get_score();
-    vec![]
+    let score_img = make_text(score.to_string().as_str());
+
+    rm.update_texture(resources.score_texture.clone(), ctxt, &score_img);
+    let model = resources.score_model.clone();
+    let transform = Transform2::new();
+    vec![UIObject { model, transform }]
 }
