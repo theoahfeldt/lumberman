@@ -1,7 +1,8 @@
 use glfw::{Action, Context as _, Key, WindowEvent};
 use lumber::{
     game::{Game, PlayerAction},
-    game_graphics, geometry, object,
+    game_graphics::{self, GameResources},
+    geometry, object,
     semantics::{Semantics, ShaderInterface},
 };
 use luminance_front::{
@@ -76,7 +77,8 @@ fn main_loop(surface: GlfwSurface) {
     });
 
     let mut rm = object::ResourceManager::new();
-    rm.load_defaults(&mut ctxt);
+    let resources = GameResources::new(&mut rm, &mut ctxt);
+
     let tess = rm.make_tess(&mut ctxt, quad);
     let texture = rm.make_texture(&mut ctxt, &text_img);
 
@@ -145,16 +147,19 @@ fn main_loop(surface: GlfwSurface) {
                         iface.set(&uni.projection, projection.into());
                         iface.set(&uni.view, view.into());
                         rdr_gate.render(&render_st, |mut tess_gate| {
-                            game_graphics::make_scene(&game).iter().try_for_each(|gm| {
-                                iface.set(&uni.model_transform, gm.transform.to_matrix().into());
-                                rm.get_model(&gm.model).clone().iter().try_for_each(|o| {
-                                    let bound_tex =
-                                        pipeline.bind_texture(rm.get_texture(&o.texture))?;
-                                    iface.set(&uni.tex, bound_tex.binding());
-                                    iface.set(&uni.local_transform, o.get_transform().into());
-                                    tess_gate.render(rm.get_tess(&o.tess))
+                            game_graphics::make_scene(&game, &resources)
+                                .iter()
+                                .try_for_each(|gm| {
+                                    iface
+                                        .set(&uni.model_transform, gm.transform.to_matrix().into());
+                                    rm.get_model(&gm.model).clone().iter().try_for_each(|o| {
+                                        let bound_tex =
+                                            pipeline.bind_texture(rm.get_texture(&o.texture))?;
+                                        iface.set(&uni.tex, bound_tex.binding());
+                                        iface.set(&uni.local_transform, o.get_transform().into());
+                                        tess_gate.render(rm.get_tess(&o.tess))
+                                    })
                                 })
-                            })
                         })
                     })
                 },

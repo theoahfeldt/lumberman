@@ -86,4 +86,8 @@ impl Game {
         };
         self.tree.push_back(new_branch);
     }
+
+    pub fn get_score(&self) -> u32 {
+        self.player.score
+    }
 }

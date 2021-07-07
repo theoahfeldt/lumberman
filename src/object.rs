@@ -168,14 +168,6 @@ impl ResourceManager {
         result
     }
 
-    pub fn log() -> ModelResource {
-        ModelResource { idx: 0 }
-    }
-
-    pub fn branch_log() -> ModelResource {
-        ModelResource { idx: 1 }
-    }
-
     pub fn get_tess(&self, tess: &TessResource) -> &DefaultTess {
         self.tesses.get(&tess.idx).unwrap()
     }
@@ -190,58 +182,6 @@ impl ResourceManager {
 
     pub fn get_model2(&self, model: &Model2Resource) -> &Model2 {
         self.model2s.get(&model.idx).unwrap()
-    }
-
-    fn load_tesses(&mut self, ctxt: &mut impl GraphicsContext<Backend = Backend>) {
-        let cylinder = geometry::cylinder(1., 0.5, 20).make_tess(ctxt);
-        self.add_tess(cylinder);
-    }
-
-    fn load_textures(&mut self, ctxt: &mut impl GraphicsContext<Backend = Backend>) {
-        let img = image::io::Reader::open("textures/pine-tree-bark-texture.jpg")
-            .unwrap()
-            .decode()
-            .unwrap()
-            .into_rgb8();
-        let bark = make_texture(ctxt, &img);
-        self.add_texture(bark);
-    }
-
-    fn load_models(&mut self) {
-        let angle: f32 = RealField::frac_pi_2();
-        let log = Object {
-            tess: TessResource { idx: 0 },
-            texture: TextureResource { idx: 0 },
-            transform: Transform {
-                translation: None,
-                scale: None,
-                rotation: Some(UnitQuaternion::from_axis_angle(
-                    &Vector3::<f32>::x_axis(),
-                    -angle,
-                )),
-            },
-        };
-        let branch = Object {
-            tess: TessResource { idx: 0 },
-            texture: TextureResource { idx: 0 },
-            transform: Transform {
-                translation: Some(Translation3::new(0.9, 0., 0.)),
-                scale: Some([0.2, 0.2, 1.]),
-                rotation: Some(UnitQuaternion::from_axis_angle(
-                    &Vector3::<f32>::y_axis(),
-                    RealField::frac_pi_2(),
-                )),
-            },
-        };
-        let log2 = log.clone();
-        self.add_model(vec![log]);
-        self.add_model(vec![log2, branch]);
-    }
-
-    pub fn load_defaults(&mut self, ctxt: &mut impl GraphicsContext<Backend = Backend>) {
-        self.load_tesses(ctxt);
-        self.load_textures(ctxt);
-        self.load_models();
     }
 
     pub fn make_tess(

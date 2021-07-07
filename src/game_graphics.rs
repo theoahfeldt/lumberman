@@ -1,9 +1,12 @@
 use crate::{
     game::{Branch, Game},
-    object::{Model2Resource, ModelResource, ResourceManager},
+    geometry,
+    object::{Model2Resource, ModelResource, Object, ResourceManager},
     transform::{Transform, Transform2},
 };
 use image::{imageops, ImageBuffer, Rgb, RgbImage};
+use luminance::context::GraphicsContext;
+use luminance_front::Backend;
 use nalgebra::{RealField, Translation3, UnitQuaternion, Vector3};
 use rusttype::{point, Font, Scale};
 
@@ -15,6 +18,57 @@ pub struct GameObject {
 pub struct UIObject {
     pub model: Model2Resource,
     pub transform: Transform2,
+}
+
+pub struct GameResources {
+    pub log: ModelResource,
+    pub branch_log: ModelResource,
+}
+
+impl GameResources {
+    pub fn new(
+        rm: &mut ResourceManager,
+        ctxt: &mut impl GraphicsContext<Backend = Backend>,
+    ) -> Self {
+        let cylinder = rm.make_tess(ctxt, geometry::cylinder(1., 0.5, 20));
+
+        let bark_img = image::io::Reader::open("textures/pine-tree-bark-texture.jpg")
+            .unwrap()
+            .decode()
+            .unwrap()
+            .into_rgb8();
+        let bark = rm.make_texture(ctxt, &bark_img);
+
+        let angle: f32 = RealField::frac_pi_2();
+        let log = Object {
+            tess: cylinder.clone(),
+            texture: bark.clone(),
+            transform: Transform {
+                translation: None,
+                scale: None,
+                rotation: Some(UnitQuaternion::from_axis_angle(
+                    &Vector3::<f32>::x_axis(),
+                    -angle,
+                )),
+            },
+        };
+        let branch = Object {
+            tess: cylinder,
+            texture: bark,
+            transform: Transform {
+                translation: Some(Translation3::new(0.9, 0., 0.)),
+                scale: Some([0.2, 0.2, 1.]),
+                rotation: Some(UnitQuaternion::from_axis_angle(
+                    &Vector3::<f32>::y_axis(),
+                    RealField::frac_pi_2(),
+                )),
+            },
+        };
+        let log2 = log.clone();
+        let log = rm.make_model(vec![log]);
+        let branch_log = rm.make_model(vec![log2, branch]);
+        Self { log, branch_log }
+    }
 }
 
 pub fn make_text_image(text: &str, font: Font, scale: Scale) -> RgbImage {
@@ -71,15 +125,15 @@ pub fn make_text_image(text: &str, font: Font, scale: Scale) -> RgbImage {
 
 pub fn make_text(text: String) -> () {}
 
-pub fn make_scene(game: &Game) -> Vec<GameObject> {
+pub fn make_scene(game: &Game, resources: &GameResources) -> Vec<GameObject> {
     game.tree
         .clone()
         .iter()
         .enumerate()
         .map(|(i, val)| {
             let model = match val {
-                Branch::None => ResourceManager::log(),
-                Branch::Left | Branch::Right => ResourceManager::branch_log(),
+                Branch::None => resources.log.clone(),
+                Branch::Left | Branch::Right => resources.branch_log.clone(),
             };
             let rotation = match val {
                 Branch::Right => Some(UnitQuaternion::from_axis_angle(
@@ -99,5 +153,6 @@ pub fn make_scene(game: &Game) -> Vec<GameObject> {
 }
 
 pub fn make_ui(game: &Game) -> Vec<UIObject> {
+    let score = game.get_score();
     vec![]
 }
