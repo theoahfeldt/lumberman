@@ -1,4 +1,4 @@
-use nalgebra::{Matrix2, Matrix3, Matrix4, Rotation2, Translation2, Translation3, UnitQuaternion};
+use nalgebra::{Matrix2, Matrix3, Matrix4, Rotation2, Translation3, UnitQuaternion};
 
 #[derive(Clone)]
 pub struct Transform {

@@ -71,20 +71,21 @@ impl Game {
         let lowest_branch = self.tree.front().unwrap();
         if self.player.collides_with(lowest_branch) {
             self.player.alive = false;
-        }
-        self.tree.pop_front();
-        let lowest_branch = self.tree.front().unwrap();
-        if self.player.collides_with(lowest_branch) {
-            self.player.alive = false;
         } else {
+            self.tree.pop_front();
             self.player.score += 1;
+            let lowest_branch = self.tree.front().unwrap();
+            if self.player.collides_with(lowest_branch) {
+                self.player.alive = false;
+            }
+
+            let new_branch = if *self.tree.back().unwrap() == Branch::None {
+                rand::random::<Branch>()
+            } else {
+                Branch::None
+            };
+            self.tree.push_back(new_branch);
         }
-        let new_branch = if *self.tree.back().unwrap() == Branch::None {
-            rand::random::<Branch>()
-        } else {
-            Branch::None
-        };
-        self.tree.push_back(new_branch);
     }
 
     pub fn get_score(&self) -> u32 {

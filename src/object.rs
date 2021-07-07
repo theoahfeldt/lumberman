@@ -1,5 +1,4 @@
 use crate::{
-    geometry,
     semantics::Vertex,
     transform::{Transform, Transform2},
 };
@@ -11,9 +10,7 @@ use luminance_front::{
     texture::{Dim2, GenMipmaps, Sampler, Texture},
     Backend,
 };
-use nalgebra::{
-    Matrix3, Matrix4, RealField, Rotation2, Translation2, Translation3, UnitQuaternion, Vector3,
-};
+use nalgebra::Matrix4;
 use std::collections::HashMap;
 
 pub type VertexIndex = u32;

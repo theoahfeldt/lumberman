@@ -170,11 +170,11 @@ pub fn make_scene(game: &Game, resources: &GameResources) -> Vec<GameObject> {
                 Branch::Left | Branch::Right => resources.branch_log.clone(),
             };
             let rotation = match val {
-                Branch::Right => Some(UnitQuaternion::from_axis_angle(
+                Branch::Left => Some(UnitQuaternion::from_axis_angle(
                     &Vector3::<f32>::y_axis(),
                     RealField::pi(),
                 )),
-                Branch::Left | Branch::None => None,
+                Branch::Right | Branch::None => None,
             };
             let transform = Transform {
                 translation: Some(Translation3::new(0., i as f32, 0.)),
