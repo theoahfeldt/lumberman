@@ -106,6 +106,7 @@ fn main_loop(surface: GlfwSurface) {
 
         if let Some(a) = action {
             game.update(a);
+            game_graphics::update_ui_resources(&game, &ui_resources, &mut rm, &mut ctxt);
             action = None;
         }
 
@@ -114,7 +115,7 @@ fn main_loop(surface: GlfwSurface) {
         let t = start_t.elapsed().as_millis() as f32 * 1e-3;
         let color = [t.cos(), t.sin(), 0.5, 1.];
 
-        let ui_objects = game_graphics::make_ui(&game, &ui_resources, &mut rm, &mut ctxt);
+        let ui_objects = game_graphics::make_ui(&ui_resources);
         let game_objects = game_graphics::make_scene(&game, &game_resources);
         let render = ctxt
             .new_pipeline_gate()

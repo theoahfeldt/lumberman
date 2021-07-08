@@ -186,16 +186,19 @@ pub fn make_scene(game: &Game, resources: &GameResources) -> Vec<GameObject> {
         .collect()
 }
 
-pub fn make_ui(
+pub fn update_ui_resources(
     game: &Game,
     resources: &UIResources,
     rm: &mut ResourceManager,
     ctxt: &mut impl GraphicsContext<Backend = Backend>,
-) -> Vec<UIObject> {
+) {
     let score = game.get_score();
     let score_img = make_text(score.to_string().as_str());
 
     rm.update_texture(resources.score_texture.clone(), ctxt, &score_img);
+}
+
+pub fn make_ui(resources: &UIResources) -> Vec<UIObject> {
     let model = resources.score_model.clone();
     let transform = Transform2::new();
     vec![UIObject { model, transform }]
