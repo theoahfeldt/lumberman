@@ -200,6 +200,10 @@ pub fn update_ui_resources(
 
 pub fn make_ui(resources: &UIResources) -> Vec<UIObject> {
     let model = resources.score_model.clone();
-    let transform = Transform2::new();
+    let transform = Transform2 {
+        scale: None,
+        rotation: None,
+        translation: Some(Translation3::new(0.75, 0.75, 0.)),
+    };
     vec![UIObject { model, transform }]
 }

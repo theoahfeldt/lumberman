@@ -66,7 +66,7 @@ impl Game {
         Self { player, tree }
     }
 
-    pub fn update(&mut self, action: PlayerAction) {
+    pub fn update(&mut self, action: PlayerAction) -> Option<u32> {
         self.player.apply_action(action);
         let lowest_branch = self.tree.front().unwrap();
         if self.player.collides_with(lowest_branch) {
@@ -85,6 +85,12 @@ impl Game {
                 Branch::None
             };
             self.tree.push_back(new_branch);
+        }
+
+        if self.player.alive {
+            None
+        } else {
+            Some(self.player.score)
         }
     }
 

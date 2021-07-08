@@ -1,7 +1,7 @@
 use glfw::{Action, Context as _, Key, WindowEvent};
 use lumber::{
-    game::{Game, PlayerAction},
-    game_graphics::{self, GameResources, UIResources},
+    game_graphics::{GameResources, UIResources},
+    game_state::{GameAction, GameState},
     object,
     semantics::{Semantics, ShaderInterface},
 };
@@ -74,8 +74,8 @@ fn main_loop(surface: GlfwSurface) {
     let game_resources = GameResources::new(&mut rm, &mut ctxt);
     let ui_resources = UIResources::new(&mut rm, &mut ctxt);
 
-    let mut game = Game::new();
-    let mut action: Option<PlayerAction> = None;
+    let mut state = GameState::StartMenu;
+    let mut action: Option<GameAction> = None;
 
     let [width, height] = back_buffer.size();
     let projection = Matrix4::new_perspective(width as f32 / height as f32, FOVY, Z_NEAR, Z_FAR);
@@ -94,19 +94,21 @@ fn main_loop(surface: GlfwSurface) {
                 WindowEvent::Close | WindowEvent::Key(Key::Escape, _, Action::Release, _) => {
                     break 'app
                 }
-                WindowEvent::Key(Key::Left, _, Action::Press, _) => {
-                    action = Some(PlayerAction::ChopLeft)
-                }
+                WindowEvent::Key(Key::Left, _, Action::Press, _) => action = Some(GameAction::Left),
                 WindowEvent::Key(Key::Right, _, Action::Press, _) => {
-                    action = Some(PlayerAction::ChopRight)
+                    action = Some(GameAction::Right)
+                }
+                WindowEvent::Key(Key::Up, _, Action::Press, _) => action = Some(GameAction::Up),
+                WindowEvent::Key(Key::Down, _, Action::Press, _) => action = Some(GameAction::Down),
+                WindowEvent::Key(Key::Enter, _, Action::Press, _) => {
+                    action = Some(GameAction::Enter)
                 }
                 _ => (),
             }
         }
 
         if let Some(a) = action {
-            game.update(a);
-            game_graphics::update_ui_resources(&game, &ui_resources, &mut rm, &mut ctxt);
+            state.update(a);
             action = None;
         }
 
@@ -115,8 +117,8 @@ fn main_loop(surface: GlfwSurface) {
         let t = start_t.elapsed().as_millis() as f32 * 1e-3;
         let color = [t.cos(), t.sin(), 0.5, 1.];
 
-        let ui_objects = game_graphics::make_ui(&ui_resources);
-        let game_objects = game_graphics::make_scene(&game, &game_resources);
+        let ui_objects = state.make_ui(&ui_resources);
+        let game_objects = state.make_scene(&game_resources);
         let render = ctxt
             .new_pipeline_gate()
             .pipeline(
