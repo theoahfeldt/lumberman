@@ -129,7 +129,7 @@ fn main_loop(surface: GlfwSurface) {
                         rdr_gate.render(&RenderState::default(), |mut tess_gate| {
                             ui_objects.iter().try_for_each(|ui| {
                                 iface.set(&uni.model_transform, ui.transform.to_matrix().into());
-                                rm.get_model2(&ui.model).clone().iter().try_for_each(|o| {
+                                ui.model.clone().iter().try_for_each(|o| {
                                     let bound_tex =
                                         pipeline.bind_texture(rm.get_texture(&o.texture))?;
                                     iface.set(&uni.tex, bound_tex.binding());
@@ -146,7 +146,7 @@ fn main_loop(surface: GlfwSurface) {
                         rdr_gate.render(&render_st, |mut tess_gate| {
                             game_objects.iter().try_for_each(|gm| {
                                 iface.set(&uni.model_transform, gm.transform.to_matrix().into());
-                                rm.get_model(&gm.model).clone().iter().try_for_each(|o| {
+                                gm.model.clone().iter().try_for_each(|o| {
                                     let bound_tex =
                                         pipeline.bind_texture(rm.get_texture(&o.texture))?;
                                     iface.set(&uni.tex, bound_tex.binding());

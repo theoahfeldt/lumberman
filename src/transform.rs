@@ -1,10 +1,10 @@
-use nalgebra::{Matrix2, Matrix3, Matrix4, Rotation2, Translation3, UnitQuaternion};
+use nalgebra::{Matrix2, Matrix3, Matrix4, Rotation2, Translation3, UnitQuaternion, Vector3};
 
 #[derive(Clone)]
 pub struct Transform {
     pub scale: Option<[f32; 3]>,
     pub rotation: Option<UnitQuaternion<f32>>,
-    pub translation: Option<Translation3<f32>>,
+    pub translation: Option<[f32; 3]>,
 }
 
 impl Transform {
@@ -17,8 +17,9 @@ impl Transform {
         if let Some(ref rotation) = self.rotation {
             local_transform = rotation.to_homogeneous() * local_transform
         }
-        if let Some(ref translation) = self.translation {
-            local_transform = translation.to_homogeneous() * local_transform
+        if let Some(translation) = self.translation {
+            local_transform =
+                Translation3::from(Vector3::from(translation)).to_homogeneous() * local_transform
         }
         local_transform
     }
@@ -36,7 +37,7 @@ impl Transform {
 pub struct Transform2 {
     pub scale: Option<[f32; 2]>,
     pub rotation: Option<f32>, // Radians
-    pub translation: Option<Translation3<f32>>,
+    pub translation: Option<[f32; 3]>,
 }
 
 impl Transform2 {
@@ -50,8 +51,9 @@ impl Transform2 {
             local_transform =
                 Rotation2::new(rotation).to_homogeneous().to_homogeneous() * local_transform
         }
-        if let Some(ref translation) = self.translation {
-            local_transform = translation.to_homogeneous() * local_transform
+        if let Some(translation) = self.translation {
+            local_transform =
+                Translation3::from(Vector3::from(translation)).to_homogeneous() * local_transform
         }
         local_transform
     }

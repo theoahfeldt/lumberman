@@ -1,55 +1,60 @@
 use crate::{
     game::{Branch, Game},
     geometry,
-    object::{Model2Resource, ModelResource, Object, Object2, ResourceManager, TextureResource},
+    object::{Model, Model2, Object, Object2, ResourceManager, TessResource, TextureResource},
     transform::{Transform, Transform2},
 };
 use image::{imageops, ImageBuffer, Rgb, RgbImage};
 use luminance::context::GraphicsContext;
 use luminance_front::Backend;
-use nalgebra::{RealField, Translation3, UnitQuaternion, Vector3};
-use rusttype::{point, Font, Scale};
+use nalgebra::{RealField, UnitQuaternion, Vector3};
+use rusttype::{point, Font, Point, Scale};
+use std::{collections::HashMap, iter::FromIterator};
 
 pub struct GameObject {
-    pub model: ModelResource,
+    pub model: Model,
     pub transform: Transform,
 }
 
 pub struct UIObject {
-    pub model: Model2Resource,
+    pub model: Model2,
     pub transform: Transform2,
 }
 
 pub struct GameResources {
-    pub log: ModelResource,
-    pub branch_log: ModelResource,
+    pub log: Model,
+    pub branch_log: Model,
 }
 
 pub struct UIResources {
-    pub score_texture: TextureResource,
-    pub score_model: Model2Resource,
+    pub char_textures: HashMap<char, TextureResource>,
+    pub unit_quad: TessResource,
 }
 
 impl UIResources {
+    fn char_to_texture(
+        rm: &mut ResourceManager,
+        ctxt: &mut impl GraphicsContext<Backend = Backend>,
+        c: char,
+    ) -> TextureResource {
+        let img = make_char(c);
+        rm.make_texture(ctxt, &img)
+    }
+
     pub fn new(
         rm: &mut ResourceManager,
         ctxt: &mut impl GraphicsContext<Backend = Backend>,
     ) -> Self {
-        let score_img = make_text("0");
-        let quad = geometry::quad(0.5, 0.5);
+        let unit_quad = rm.make_tess(ctxt, geometry::quad(1., 1.));
 
-        let tess = rm.make_tess(ctxt, quad);
-        let score_texture = rm.make_texture(ctxt, &score_img);
-        let transform = Transform2::new();
-        let score_object = Object2 {
-            tess,
-            texture: score_texture.clone(),
-            transform,
-        };
-        let score_model = rm.make_model2(vec![score_object]);
+        let char_textures = HashMap::from_iter(
+            (b'0'..=b'z')
+                .map(|c| c as char)
+                .map(|c| (c, Self::char_to_texture(rm, ctxt, c))),
+        );
         Self {
-            score_texture,
-            score_model,
+            char_textures,
+            unit_quad,
         }
     }
 }
@@ -85,7 +90,7 @@ impl GameResources {
             tess: cylinder,
             texture: bark,
             transform: Transform {
-                translation: Some(Translation3::new(0.9, 0., 0.)),
+                translation: Some([0.9, 0., 0.]),
                 scale: Some([0.2, 0.2, 1.]),
                 rotation: Some(UnitQuaternion::from_axis_angle(
                     &Vector3::<f32>::y_axis(),
@@ -94,10 +99,44 @@ impl GameResources {
             },
         };
         let log2 = log.clone();
-        let log = rm.make_model(vec![log]);
-        let branch_log = rm.make_model(vec![log2, branch]);
+        let log = vec![log];
+        let branch_log = vec![log2, branch];
         Self { log, branch_log }
     }
+}
+
+pub fn make_char_image(c: char, font: Font, scale: Scale) -> RgbImage {
+    let bg_color = Vector3::new(255., 255., 255.);
+    let color = Vector3::new(150., 0., 0.);
+    let glyph = font
+        .glyph(c)
+        .scaled(scale)
+        .positioned(Point { x: 0., y: 0. });
+    let bounding_box = glyph.pixel_bounding_box().unwrap();
+
+    let mut image = ImageBuffer::from_pixel(
+        bounding_box.width() as u32,
+        bounding_box.height() as u32,
+        Rgb([bg_color.x as u8, bg_color.y as u8, bg_color.z as u8]),
+    );
+
+    glyph.draw(|x, y, v| {
+        let color_vec = bg_color * (1. - v) + color * v;
+        image.put_pixel(
+            x as u32,
+            y as u32,
+            Rgb([color_vec.x as u8, color_vec.y as u8, color_vec.z as u8]),
+        )
+    });
+
+    imageops::flip_vertical(&image)
+}
+
+pub fn make_char(c: char) -> RgbImage {
+    let scale = rusttype::Scale::uniform(256.0);
+    let font_data = include_bytes!("../fonts/Courier New.ttf");
+    let font = rusttype::Font::try_from_bytes(font_data as &[u8]).expect("Constructing font");
+    make_char_image(c, font, scale)
 }
 
 pub fn make_text_image(text: &str, font: Font, scale: Scale) -> RgbImage {
@@ -177,33 +216,38 @@ pub fn make_scene(game: &Game, resources: &GameResources) -> Vec<GameObject> {
                 Branch::Right | Branch::None => None,
             };
             let transform = Transform {
-                translation: Some(Translation3::new(0., i as f32, 0.)),
                 scale: None,
                 rotation,
+                translation: Some([0., i as f32, 0.]),
             };
             GameObject { model, transform }
         })
         .collect()
 }
 
-pub fn update_ui_resources(
-    game: &Game,
-    resources: &UIResources,
-    rm: &mut ResourceManager,
-    ctxt: &mut impl GraphicsContext<Backend = Backend>,
-) {
-    let score = game.get_score();
-    let score_img = make_text(score.to_string().as_str());
-
-    rm.update_texture(resources.score_texture.clone(), ctxt, &score_img);
-}
-
-pub fn make_ui(resources: &UIResources) -> Vec<UIObject> {
-    let model = resources.score_model.clone();
-    let transform = Transform2 {
-        scale: None,
-        rotation: None,
-        translation: Some(Translation3::new(0.75, 0.75, 0.)),
+pub fn make_ui(game: &Game, resources: &UIResources) -> Vec<UIObject> {
+    let model = game
+        .get_score()
+        .to_string()
+        .chars()
+        .enumerate()
+        .map(|(i, c)| Object2 {
+            tess: resources.unit_quad.clone(),
+            texture: resources.char_textures.get(&c).unwrap().clone(),
+            transform: Transform2 {
+                scale: None,
+                rotation: None,
+                translation: Some([i as f32, 0., 0.]),
+            },
+        })
+        .collect();
+    let score = UIObject {
+        model,
+        transform: Transform2 {
+            scale: Some([0.25, 0.5]),
+            rotation: None,
+            translation: Some([-0.8, 0.7, 0.]),
+        },
     };
-    vec![UIObject { model, transform }]
+    vec![score]
 }

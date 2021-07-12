@@ -47,16 +47,6 @@ pub struct TextureResource {
     idx: u32,
 }
 
-#[derive(Clone, PartialEq, Eq, Hash)]
-pub struct ModelResource {
-    idx: u32,
-}
-
-#[derive(Clone, PartialEq, Eq, Hash)]
-pub struct Model2Resource {
-    idx: u32,
-}
-
 #[derive(Clone)]
 pub struct Object {
     pub tess: TessResource,
@@ -107,12 +97,8 @@ fn make_texture(
 pub struct ResourceManager {
     tesses: HashMap<u32, DefaultTess>,
     textures: HashMap<u32, RgbTexture>,
-    models: HashMap<u32, Model>,
-    model2s: HashMap<u32, Model2>,
     tess_counter: u32,
     texture_counter: u32,
-    model_counter: u32,
-    model2_counter: u32,
 }
 
 impl ResourceManager {
@@ -120,12 +106,8 @@ impl ResourceManager {
         Self {
             tesses: HashMap::new(),
             textures: HashMap::new(),
-            models: HashMap::new(),
-            model2s: HashMap::new(),
             tess_counter: 0,
             texture_counter: 0,
-            model_counter: 0,
-            model2_counter: 0,
         }
     }
 
@@ -147,38 +129,12 @@ impl ResourceManager {
         result
     }
 
-    fn add_model(&mut self, model: Model) -> ModelResource {
-        self.models.insert(self.model_counter, model);
-        let result = ModelResource {
-            idx: self.model_counter,
-        };
-        self.model_counter += 1;
-        result
-    }
-
-    fn add_model2(&mut self, model: Model2) -> Model2Resource {
-        self.model2s.insert(self.model2_counter, model);
-        let result = Model2Resource {
-            idx: self.model2_counter,
-        };
-        self.model2_counter += 1;
-        result
-    }
-
     pub fn get_tess(&self, tess: &TessResource) -> &DefaultTess {
         self.tesses.get(&tess.idx).unwrap()
     }
 
     pub fn get_texture(&mut self, texture: &TextureResource) -> &mut RgbTexture {
         self.textures.get_mut(&texture.idx).unwrap()
-    }
-
-    pub fn get_model(&self, model: &ModelResource) -> &Model {
-        self.models.get(&model.idx).unwrap()
-    }
-
-    pub fn get_model2(&self, model: &Model2Resource) -> &Model2 {
-        self.model2s.get(&model.idx).unwrap()
     }
 
     pub fn make_tess(
@@ -197,14 +153,6 @@ impl ResourceManager {
         self.add_texture(make_texture(ctxt, img))
     }
 
-    pub fn make_model(&mut self, model: Model) -> ModelResource {
-        self.add_model(model)
-    }
-
-    pub fn make_model2(&mut self, model: Model2) -> Model2Resource {
-        self.add_model2(model)
-    }
-
     pub fn update_tess(
         &mut self,
         resource: TessResource,
@@ -221,13 +169,5 @@ impl ResourceManager {
         img: &RgbImage,
     ) {
         self.textures.insert(resource.idx, make_texture(ctxt, img));
-    }
-
-    pub fn update_model(&mut self, resource: ModelResource, model: Model) {
-        self.models.insert(resource.idx, model);
-    }
-
-    pub fn update_model2(&mut self, resource: Model2Resource, model: Model2) {
-        self.model2s.insert(resource.idx, model);
     }
 }

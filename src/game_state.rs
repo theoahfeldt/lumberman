@@ -45,7 +45,7 @@ impl GameState {
     pub fn make_ui(&self, resources: &UIResources) -> Vec<UIObject> {
         match self {
             Self::StartMenu => vec![],
-            Self::InGame(game) => game_graphics::make_ui(resources),
+            Self::InGame(game) => game_graphics::make_ui(&game, resources),
             Self::GameOver(_) => vec![],
         }
     }
