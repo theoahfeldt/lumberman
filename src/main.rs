@@ -2,6 +2,7 @@ use glfw::{Action, Context as _, Key, WindowEvent};
 use lumber::{
     game_graphics::{GameResources, UIResources},
     game_state::{GameAction, GameState},
+    menu::Menu,
     object,
     semantics::{Semantics, ShaderInterface},
 };
@@ -74,7 +75,7 @@ fn main_loop(surface: GlfwSurface) {
     let game_resources = GameResources::new(&mut rm, &mut ctxt);
     let ui_resources = UIResources::new(&mut rm, &mut ctxt);
 
-    let mut state = GameState::StartMenu;
+    let mut state = GameState::StartMenu(Menu::new());
     let mut action: Option<GameAction> = None;
 
     let [width, height] = back_buffer.size();
@@ -108,7 +109,9 @@ fn main_loop(surface: GlfwSurface) {
         }
 
         if let Some(a) = action {
-            state.update(a);
+            if state.update(a) {
+                break 'app;
+            }
             action = None;
         }
 
