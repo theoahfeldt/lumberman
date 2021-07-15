@@ -1,6 +1,7 @@
 use crate::{
     game::{Branch, Game},
     geometry,
+    menu::Menu,
     object::{Model, Model2, Object, Object2, ResourceManager, TessResource, TextureResource},
     transform::{Transform, Transform2},
 };
@@ -29,6 +30,8 @@ pub struct GameResources {
 pub struct UIResources {
     pub char_textures: HashMap<char, TextureResource>,
     pub unit_quad: TessResource,
+    pub start: Model2,
+    pub quit: Model2,
 }
 
 impl UIResources {
@@ -52,9 +55,34 @@ impl UIResources {
                 .map(|c| c as char)
                 .map(|c| (c, Self::char_to_texture(rm, ctxt, c))),
         );
+
+        let start_txt = rm.make_texture(ctxt, &make_text("Start"));
+        let start = vec![Object2 {
+            tess: unit_quad.clone(),
+            texture: start_txt.clone(),
+            transform: Transform2 {
+                scale: Some([0.8, 0.3]),
+                rotation: None,
+                translation: None,
+            },
+        }];
+
+        let quit_txt = rm.make_texture(ctxt, &make_text("Quit"));
+        let quit = vec![Object2 {
+            tess: unit_quad.clone(),
+            texture: quit_txt.clone(),
+            transform: Transform2 {
+                scale: Some([0.8, 0.3]),
+                rotation: None,
+                translation: None,
+            },
+        }];
+
         Self {
             char_textures,
             unit_quad,
+            start,
+            quit,
         }
     }
 }
@@ -250,4 +278,26 @@ pub fn make_ui(game: &Game, resources: &UIResources) -> Vec<UIObject> {
         },
     };
     vec![score]
+}
+
+pub fn make_menu(menu: &Menu, resources: &UIResources) -> Vec<UIObject> {
+    let buttons = [resources.start.clone(), resources.quit.clone()];
+    let selected = menu.selected_idx;
+    let start_pos = 0.5;
+    buttons
+        .iter()
+        .enumerate()
+        .map(|(i, m)| UIObject {
+            model: m.clone(),
+            transform: Transform2 {
+                scale: if i == selected {
+                    Some([1.1, 1.1])
+                } else {
+                    None
+                },
+                rotation: None,
+                translation: Some([0., start_pos - i as f32, 0.]),
+            },
+        })
+        .collect()
 }
