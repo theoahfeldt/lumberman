@@ -10,7 +10,7 @@ use luminance_front::{
     texture::{Dim2, GenMipmaps, Sampler, Texture},
     Backend,
 };
-use nalgebra::Matrix4;
+use rapier3d::na::Matrix4;
 use std::collections::HashMap;
 
 pub type VertexIndex = u32;

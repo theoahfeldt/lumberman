@@ -108,12 +108,10 @@ fn main_loop(surface: GlfwSurface) {
             }
         }
 
-        if let Some(a) = action {
-            if state.update(a) {
-                break 'app;
-            }
-            action = None;
+        if state.update(action) {
+            break 'app;
         }
+        action = None;
 
         // rendering code goes here
         // get the current time and create a color based on the time

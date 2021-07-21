@@ -8,7 +8,7 @@ use crate::{
 use image::{imageops, ImageBuffer, Rgb, RgbImage};
 use luminance::context::GraphicsContext;
 use luminance_front::Backend;
-use nalgebra::{RealField, UnitQuaternion, Vector3};
+use rapier3d::na::{RealField, Translation3, UnitQuaternion, Vector3};
 use rusttype::{point, Font, Point, Scale};
 use std::{collections::HashMap, iter::FromIterator};
 
@@ -24,7 +24,8 @@ pub struct UIObject {
 
 pub struct GameResources {
     pub log: Model,
-    pub branch_log: Model,
+    pub branch_left: Model,
+    pub branch_right: Model,
 }
 
 pub struct UIResources {
@@ -102,7 +103,7 @@ impl GameResources {
         let bark = rm.make_texture(ctxt, &bark_img);
 
         let angle: f32 = RealField::frac_pi_2();
-        let log = Object {
+        let log_obj = Object {
             tess: cylinder.clone(),
             texture: bark.clone(),
             transform: Transform {
@@ -114,11 +115,11 @@ impl GameResources {
                 )),
             },
         };
-        let branch = Object {
+        let mut branch = Object {
             tess: cylinder,
             texture: bark,
             transform: Transform {
-                translation: Some([0.9, 0., 0.]),
+                translation: Some(Translation3::new(-0.9, 0., 0.)),
                 scale: Some([0.2, 0.2, 1.]),
                 rotation: Some(UnitQuaternion::from_axis_angle(
                     &Vector3::<f32>::y_axis(),
@@ -126,10 +127,15 @@ impl GameResources {
                 )),
             },
         };
-        let log2 = log.clone();
-        let log = vec![log];
-        let branch_log = vec![log2, branch];
-        Self { log, branch_log }
+        let log: Vec<Object> = vec![log_obj.clone()];
+        let branch_left: Vec<Object> = vec![log_obj.clone(), branch.clone()];
+        branch.transform.translation = Some(Translation3::new(0.9, 0., 0.));
+        let branch_right: Vec<Object> = vec![log_obj, branch];
+        Self {
+            log,
+            branch_left,
+            branch_right,
+        }
     }
 }
 
@@ -234,19 +240,14 @@ pub fn make_scene(game: &Game, resources: &GameResources) -> Vec<GameObject> {
         .map(|(i, val)| {
             let model = match val {
                 Branch::None => resources.log.clone(),
-                Branch::Left | Branch::Right => resources.branch_log.clone(),
+                Branch::Left => resources.branch_left.clone(),
+                Branch::Right => resources.branch_right.clone(),
             };
-            let rotation = match val {
-                Branch::Left => Some(UnitQuaternion::from_axis_angle(
-                    &Vector3::<f32>::y_axis(),
-                    RealField::pi(),
-                )),
-                Branch::Right | Branch::None => None,
-            };
+            let rotation = None;
             let transform = Transform {
                 scale: None,
                 rotation,
-                translation: Some([0., i as f32, 0.]),
+                translation: Some(Translation3::new(0., i as f32, 0.)),
             };
             GameObject { model, transform }
         })
@@ -265,7 +266,7 @@ pub fn make_ui(game: &Game, resources: &UIResources) -> Vec<UIObject> {
             transform: Transform2 {
                 scale: None,
                 rotation: None,
-                translation: Some([i as f32, 0., 0.]),
+                translation: Some(Translation3::new(i as f32, 0., 0.)),
             },
         })
         .collect();
@@ -274,7 +275,7 @@ pub fn make_ui(game: &Game, resources: &UIResources) -> Vec<UIObject> {
         transform: Transform2 {
             scale: Some([0.25, 0.5]),
             rotation: None,
-            translation: Some([-0.8, 0.7, 0.]),
+            translation: Some(Translation3::new(-0.8, 0.7, 0.)),
         },
     };
     vec![score]
@@ -296,7 +297,7 @@ pub fn make_menu(menu: &Menu, resources: &UIResources) -> Vec<UIObject> {
                     None
                 },
                 rotation: None,
-                translation: Some([0., start_pos - i as f32, 0.]),
+                translation: Some(Translation3::new(0., start_pos - i as f32, 0.)),
             },
         })
         .collect()

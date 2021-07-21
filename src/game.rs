@@ -2,7 +2,7 @@ use rand::distributions::{Distribution, Standard};
 use rand::Rng;
 use std::collections::VecDeque;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Branch {
     None,
     Left,
@@ -24,7 +24,7 @@ enum PlayerPos {
     Right,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub enum PlayerAction {
     ChopLeft,
     ChopRight,
@@ -50,6 +50,11 @@ impl Player {
     }
 }
 
+pub enum GameResult {
+    Performed(PlayerAction),
+    Finished(u32),
+}
+
 pub struct Game {
     player: Player,
     pub tree: VecDeque<Branch>,
@@ -66,7 +71,7 @@ impl Game {
         Self { player, tree }
     }
 
-    pub fn update(&mut self, action: PlayerAction) -> Option<u32> {
+    pub fn update(&mut self, action: PlayerAction) -> GameResult {
         self.player.apply_action(action);
         let lowest_branch = self.tree.front().unwrap();
         if self.player.collides_with(lowest_branch) {
@@ -88,9 +93,9 @@ impl Game {
         }
 
         if self.player.alive {
-            None
+            GameResult::Performed(action)
         } else {
-            Some(self.player.score)
+            GameResult::Finished(self.player.score)
         }
     }
 
