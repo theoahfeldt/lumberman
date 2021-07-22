@@ -50,7 +50,7 @@ impl Player {
     }
 }
 
-pub enum GameResult {
+pub enum GameEvent {
     Performed(PlayerAction),
     Finished(u32),
 }
@@ -71,7 +71,7 @@ impl Game {
         Self { player, tree }
     }
 
-    pub fn update(&mut self, action: PlayerAction) -> GameResult {
+    pub fn update(&mut self, action: PlayerAction) -> GameEvent {
         self.player.apply_action(action);
         let lowest_branch = self.tree.front().unwrap();
         if self.player.collides_with(lowest_branch) {
@@ -93,9 +93,9 @@ impl Game {
         }
 
         if self.player.alive {
-            GameResult::Performed(action)
+            GameEvent::Performed(action)
         } else {
-            GameResult::Finished(self.player.score)
+            GameEvent::Finished(self.player.score)
         }
     }
 

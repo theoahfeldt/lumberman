@@ -93,6 +93,17 @@ impl GamePhysics {
         }
     }
 
+    pub fn reset(&mut self) {
+        let body = self.rigid_bodies.get_mut(self.base_log.handle).unwrap();
+        body.set_translation(vector![0., LOG_HALF_HEIGHT, 0.], true);
+        body.set_linvel(vector![0., 0., 0.], true);
+        self.base_log.branch = Branch::None;
+        for x in self.flying_logs.clone() {
+            self.remove_log(x)
+        }
+        self.flying_logs.clear();
+    }
+
     fn update_base_log(&mut self, branch: Branch) {
         let body = self.rigid_bodies.get_mut(self.base_log.handle).unwrap();
         body.set_translation(vector![0., 3. * LOG_HALF_HEIGHT, 0.], true);
@@ -168,9 +179,6 @@ impl GamePhysics {
         }
         let set = &self.rigid_bodies;
         self.flying_logs.retain(|x| set.contains(x.handle));
-        if self.flying_logs.len() > 10 {
-            self.flying_logs.pop_front();
-        }
     }
 
     pub fn step(&mut self) {

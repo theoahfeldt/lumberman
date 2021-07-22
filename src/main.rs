@@ -1,8 +1,8 @@
 use glfw::{Action, Context as _, Key, WindowEvent};
 use lumber::{
+    audio::AudioResources,
     game_graphics::{GameResources, UIResources},
-    game_state::{GameAction, GameState},
-    menu::Menu,
+    game_state::{GameAction, GameRunner},
     object,
     semantics::{Semantics, ShaderInterface},
 };
@@ -74,8 +74,9 @@ fn main_loop(surface: GlfwSurface) {
     let mut rm = object::ResourceManager::new();
     let game_resources = GameResources::new(&mut rm, &mut ctxt);
     let ui_resources = UIResources::new(&mut rm, &mut ctxt);
+    let audio_resources = AudioResources::new();
 
-    let mut state = GameState::StartMenu(Menu::new());
+    let mut runner = GameRunner::new();
     let mut action: Option<GameAction> = None;
 
     let [width, height] = back_buffer.size();
@@ -108,9 +109,10 @@ fn main_loop(surface: GlfwSurface) {
             }
         }
 
-        if state.update(action) {
+        if runner.update(action) {
             break 'app;
         }
+        runner.play_audio(&audio_resources);
         action = None;
 
         // rendering code goes here
@@ -118,8 +120,8 @@ fn main_loop(surface: GlfwSurface) {
         let t = start_t.elapsed().as_millis() as f32 * 1e-3;
         let color = [t.cos(), t.sin(), 0.5, 1.];
 
-        let ui_objects = state.make_ui(&ui_resources);
-        let game_objects = state.make_scene(&game_resources);
+        let ui_objects = runner.make_ui(&ui_resources);
+        let game_objects = runner.make_scene(&game_resources);
         let render = ctxt
             .new_pipeline_gate()
             .pipeline(

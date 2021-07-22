@@ -1,3 +1,4 @@
+pub mod audio;
 pub mod game;
 pub mod game_graphics;
 pub mod game_physics;

@@ -1,14 +1,24 @@
 use crate::{
-    game::{Game, GameResult, PlayerAction},
+    audio::{AudioPlayer, AudioResources},
+    game::{Game, GameEvent, PlayerAction},
     game_graphics::{self, GameObject, GameResources, UIObject, UIResources},
     game_physics::GamePhysics,
     menu::{Menu, MenuAction, MenuResult},
 };
 
-pub enum GameState {
-    StartMenu(Menu),
-    InGame(Game, GamePhysics),
-    GameOver(u32),
+enum GameState {
+    StartMenu,
+    InGame,
+    GameOver,
+}
+
+pub struct GameRunner {
+    state: GameState,
+    menu: Menu,
+    game: Game,
+    physics: GamePhysics,
+    player: AudioPlayer,
+    event: Option<GameEvent>,
 }
 
 pub enum GameAction {
@@ -38,51 +48,79 @@ impl GameAction {
     }
 }
 
-impl GameState {
+impl GameRunner {
+    pub fn new() -> Self {
+        Self {
+            menu: Menu::new(),
+            state: GameState::StartMenu,
+            game: Game::new(),
+            physics: GamePhysics::new(),
+            player: AudioPlayer::new(),
+            event: None,
+        }
+    }
+
     pub fn update(&mut self, action: Option<GameAction>) -> bool {
         let mut to_quit = false;
-        match self {
-            Self::StartMenu(menu) => {
+        match self.state {
+            GameState::StartMenu => {
                 if let Some(ma) = action.and_then(GameAction::to_menu_action) {
-                    match menu.update(ma) {
+                    match self.menu.update(ma) {
                         Some(MenuResult::Start) => {
-                            *self = Self::InGame(Game::new(), GamePhysics::new())
+                            self.state = GameState::InGame;
                         }
                         Some(MenuResult::Quit) => to_quit = true,
                         None => (),
                     }
                 }
             }
-            Self::InGame(game, physics) => {
+            GameState::InGame => {
                 if let Some(pa) = action.and_then(GameAction::to_player_action) {
-                    let result = game.update(pa);
-                    physics.update(game, pa);
-                    physics.step();
-                    if let GameResult::Finished(final_score) = result {
-                        *self = Self::GameOver(final_score)
+                    let event = self.game.update(pa);
+                    self.physics.update(&self.game, pa);
+                    self.physics.step();
+                    if let GameEvent::Finished(_) = event {
+                        self.state = GameState::GameOver;
                     }
+                    self.event = Some(event);
                 } else {
-                    physics.step()
+                    self.physics.step();
+                    self.event = None;
                 }
             }
-            Self::GameOver(_) => *self = Self::StartMenu(Menu::new()),
+            GameState::GameOver => {
+                self.state = GameState::StartMenu;
+                self.game = Game::new();
+                self.physics.reset();
+            }
         }
         to_quit
     }
 
+    pub fn play_audio(&mut self, resources: &AudioResources) {
+        match self.state {
+            GameState::InGame => {
+                if let Some(GameEvent::Performed(_action)) = self.event {
+                    self.player.play(resources.chop.clone())
+                }
+            }
+            _ => (),
+        }
+    }
+
     pub fn make_ui(&self, resources: &UIResources) -> Vec<UIObject> {
-        match self {
-            Self::StartMenu(menu) => game_graphics::make_menu(&menu, resources),
-            Self::InGame(game, _) => game_graphics::make_ui(&game, resources),
-            Self::GameOver(_) => vec![],
+        match self.state {
+            GameState::StartMenu => game_graphics::make_menu(&self.menu, resources),
+            GameState::InGame => game_graphics::make_ui(&self.game, resources),
+            GameState::GameOver => vec![],
         }
     }
 
     pub fn make_scene(&self, resources: &GameResources) -> Vec<GameObject> {
-        match self {
-            Self::StartMenu(_) => vec![],
-            Self::InGame(game, physics) => physics.make_scene(game, resources),
-            Self::GameOver(_) => vec![],
+        match self.state {
+            GameState::StartMenu => vec![],
+            GameState::InGame => self.physics.make_scene(&self.game, resources),
+            GameState::GameOver => vec![],
         }
     }
 }
