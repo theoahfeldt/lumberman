@@ -5,7 +5,7 @@ use crate::{
     object::{Model, Model2, Object, Object2, ResourceManager, TessResource, TextureResource},
     transform::{Transform, Transform2},
 };
-use image::{imageops, DynamicImage, GenericImage, ImageBuffer, Rgb, Rgba, RgbaImage};
+use image::{imageops, DynamicImage, GenericImage, Rgb, Rgba, RgbaImage};
 use luminance::context::GraphicsContext;
 use luminance_front::Backend;
 use rapier3d::na::{RealField, Translation3, UnitQuaternion, Vector3};
@@ -183,11 +183,7 @@ pub fn make_text_image(text: &str, font: Font, scale: Scale, color: Rgb<u8>) -> 
     };
 
     // Create a new rgb image with some padding
-    let mut image = ImageBuffer::from_pixel(
-        glyphs_width + 40,
-        glyphs_height + 40,
-        Rgba([255, 255, 255, 0]),
-    );
+    let mut image = DynamicImage::new_rgba8(glyphs_width + 40, glyphs_height + 40);
 
     let [r, g, b] = color.0;
 
@@ -206,7 +202,6 @@ pub fn make_text_image(text: &str, font: Font, scale: Scale, color: Rgb<u8>) -> 
             });
         }
     }
-    image.save("test.png");
     imageops::flip_vertical(&image)
 }
 
