@@ -95,7 +95,7 @@ impl GameResources {
     ) -> Self {
         let cylinder = rm.make_tess(ctxt, geometry::cylinder(1., 0.5, 20));
 
-        let bark_img = image::io::Reader::open("textures/pine-tree-bark-texture.jpg")
+        let bark_img = image::io::Reader::open("textures/log_texture.png")
             .unwrap()
             .decode()
             .unwrap()
