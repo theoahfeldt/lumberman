@@ -2,10 +2,11 @@ use crate::{
     semantics::Vertex,
     transform::{Transform, Transform2},
 };
-use image::RgbImage;
+use image::RgbaImage;
+
 use luminance_front::{
     context::GraphicsContext,
-    pixel::NormRGB8UI,
+    pixel::NormRGBA8UI,
     tess::{Interleaved, Mode, Tess},
     texture::{Dim2, GenMipmaps, Sampler, Texture},
     Backend,
@@ -35,7 +36,7 @@ impl Mesh {
     }
 }
 
-pub type RgbTexture = Texture<Dim2, NormRGB8UI>;
+pub type RgbaTexture = Texture<Dim2, NormRGBA8UI>;
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct TessResource {
@@ -78,8 +79,8 @@ pub type Model2 = Vec<Object2>;
 
 fn make_texture(
     context: &mut impl GraphicsContext<Backend = Backend>,
-    img: &image::RgbImage,
-) -> RgbTexture {
+    img: &image::RgbaImage,
+) -> RgbaTexture {
     let (width, height) = img.dimensions();
     let texels = img.as_raw();
 
@@ -96,7 +97,7 @@ fn make_texture(
 
 pub struct ResourceManager {
     tesses: HashMap<u32, DefaultTess>,
-    textures: HashMap<u32, RgbTexture>,
+    textures: HashMap<u32, RgbaTexture>,
     tess_counter: u32,
     texture_counter: u32,
 }
@@ -120,7 +121,7 @@ impl ResourceManager {
         result
     }
 
-    fn add_texture(&mut self, texture: RgbTexture) -> TextureResource {
+    fn add_texture(&mut self, texture: RgbaTexture) -> TextureResource {
         self.textures.insert(self.texture_counter, texture);
         let result = TextureResource {
             idx: self.texture_counter,
@@ -133,7 +134,7 @@ impl ResourceManager {
         self.tesses.get(&tess.idx).unwrap()
     }
 
-    pub fn get_texture(&mut self, texture: &TextureResource) -> &mut RgbTexture {
+    pub fn get_texture(&mut self, texture: &TextureResource) -> &mut RgbaTexture {
         self.textures.get_mut(&texture.idx).unwrap()
     }
 
@@ -148,7 +149,7 @@ impl ResourceManager {
     pub fn make_texture(
         &mut self,
         ctxt: &mut impl GraphicsContext<Backend = Backend>,
-        img: &RgbImage,
+        img: &RgbaImage,
     ) -> TextureResource {
         self.add_texture(make_texture(ctxt, img))
     }
@@ -166,7 +167,7 @@ impl ResourceManager {
         &mut self,
         resource: TextureResource,
         ctxt: &mut impl GraphicsContext<Backend = Backend>,
-        img: &RgbImage,
+        img: &RgbaImage,
     ) {
         self.textures.insert(resource.idx, make_texture(ctxt, img));
     }

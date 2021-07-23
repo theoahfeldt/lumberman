@@ -17,17 +17,17 @@ impl AudioResources {
 pub struct AudioPlayer {
     volume: f32,
     sinks: Vec<Sink>,
-    stream: OutputStream,
+    _stream: OutputStream,
     stream_handle: OutputStreamHandle,
 }
 
 impl AudioPlayer {
     pub fn new() -> Self {
-        let (stream, stream_handle) = OutputStream::try_default().unwrap();
+        let (_stream, stream_handle) = OutputStream::try_default().unwrap();
         Self {
             volume: 1.,
             sinks: vec![],
-            stream,
+            _stream,
             stream_handle,
         }
     }
@@ -43,6 +43,7 @@ impl AudioPlayer {
         S::Item: Send,
     {
         let sink = Sink::try_new(&self.stream_handle).unwrap();
+        sink.set_volume(self.volume);
         sink.append(source);
         self.sinks.push(sink);
         self.remove_used_sinks();

@@ -68,7 +68,7 @@ fn main_loop(surface: GlfwSurface) {
     let render_st = &RenderState::default().set_blending(Blending {
         equation: Equation::Additive,
         src: Factor::SrcAlpha,
-        dst: Factor::Zero,
+        dst: Factor::SrcAlphaComplement,
     });
 
     let mut rm = object::ResourceManager::new();
@@ -129,7 +129,7 @@ fn main_loop(surface: GlfwSurface) {
                 &PipelineState::default().set_clear_color(color),
                 |pipeline, mut shd_gate| {
                     shd_gate.shade(&mut ui_program, |mut iface, uni, mut rdr_gate| {
-                        rdr_gate.render(&RenderState::default(), |mut tess_gate| {
+                        rdr_gate.render(&render_st, |mut tess_gate| {
                             ui_objects.iter().try_for_each(|ui| {
                                 iface.set(&uni.model_transform, ui.transform.to_matrix().into());
                                 ui.model.clone().iter().try_for_each(|o| {

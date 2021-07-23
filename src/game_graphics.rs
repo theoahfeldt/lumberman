@@ -5,11 +5,11 @@ use crate::{
     object::{Model, Model2, Object, Object2, ResourceManager, TessResource, TextureResource},
     transform::{Transform, Transform2},
 };
-use image::{imageops, ImageBuffer, Rgb, RgbImage};
+use image::{imageops, DynamicImage, GenericImage, ImageBuffer, Rgb, Rgba, RgbaImage};
 use luminance::context::GraphicsContext;
 use luminance_front::Backend;
 use rapier3d::na::{RealField, Translation3, UnitQuaternion, Vector3};
-use rusttype::{point, Font, Point, Scale};
+use rusttype::{point, Font, Scale};
 use std::{collections::HashMap, iter::FromIterator};
 
 pub struct GameObject {
@@ -99,7 +99,7 @@ impl GameResources {
             .unwrap()
             .decode()
             .unwrap()
-            .into_rgb8();
+            .into_rgba8();
         let bark = rm.make_texture(ctxt, &bark_img);
 
         let angle: f32 = RealField::frac_pi_2();
@@ -139,44 +139,28 @@ impl GameResources {
     }
 }
 
-pub fn make_char_image(c: char, font: Font, scale: Scale) -> RgbImage {
-    let bg_color = Vector3::new(255., 255., 255.);
-    let color = Vector3::new(150., 0., 0.);
-    let glyph = font
-        .glyph(c)
-        .scaled(scale)
-        .positioned(Point { x: 0., y: 0. });
+pub fn make_char_image(c: char, font: Font, scale: Scale, color: Rgb<u8>) -> RgbaImage {
+    let glyph = font.glyph(c).scaled(scale).positioned(point(0., 0.));
     let bounding_box = glyph.pixel_bounding_box().unwrap();
 
-    let mut image = ImageBuffer::from_pixel(
-        bounding_box.width() as u32,
-        bounding_box.height() as u32,
-        Rgb([bg_color.x as u8, bg_color.y as u8, bg_color.z as u8]),
-    );
+    let mut image =
+        DynamicImage::new_rgba8(bounding_box.width() as u32, bounding_box.height() as u32);
 
-    glyph.draw(|x, y, v| {
-        let color_vec = bg_color * (1. - v) + color * v;
-        image.put_pixel(
-            x as u32,
-            y as u32,
-            Rgb([color_vec.x as u8, color_vec.y as u8, color_vec.z as u8]),
-        )
-    });
+    let [r, g, b] = color.0;
+
+    glyph.draw(|x, y, v| image.put_pixel(x as u32, y as u32, Rgba([r, g, b, (v * 255.) as u8])));
 
     imageops::flip_vertical(&image)
 }
 
-pub fn make_char(c: char) -> RgbImage {
+pub fn make_char(c: char) -> RgbaImage {
     let scale = rusttype::Scale::uniform(256.0);
     let font_data = include_bytes!("../fonts/Courier New.ttf");
     let font = rusttype::Font::try_from_bytes(font_data as &[u8]).expect("Constructing font");
-    make_char_image(c, font, scale)
+    make_char_image(c, font, scale, Rgb([150, 0, 0]))
 }
 
-pub fn make_text_image(text: &str, font: Font, scale: Scale) -> RgbImage {
-    let bg_color = Vector3::new(255., 255., 255.);
-    let color = Vector3::new(150., 0., 0.);
-
+pub fn make_text_image(text: &str, font: Font, scale: Scale, color: Rgb<u8>) -> RgbaImage {
     let v_metrics = font.v_metrics(scale);
 
     // layout the glyphs in a line with 20 pixels padding
@@ -202,34 +186,35 @@ pub fn make_text_image(text: &str, font: Font, scale: Scale) -> RgbImage {
     let mut image = ImageBuffer::from_pixel(
         glyphs_width + 40,
         glyphs_height + 40,
-        Rgb([bg_color.x as u8, bg_color.y as u8, bg_color.z as u8]),
+        Rgba([255, 255, 255, 0]),
     );
+
+    let [r, g, b] = color.0;
 
     // Loop through the glyphs in the text, positing each one on a line
     for glyph in glyphs {
         if let Some(bounding_box) = glyph.pixel_bounding_box() {
             // Draw the glyph into the image per-pixel by using the draw closure
             glyph.draw(|x, y, v| {
-                let color_vec = bg_color * (1. - v) + color * v;
                 image.put_pixel(
                     // Offset the position by the glyph bounding box
                     x + bounding_box.min.x as u32 - 20,
                     y + bounding_box.min.y as u32,
                     // Turn the coverage into an alpha value
-                    Rgb([color_vec.x as u8, color_vec.y as u8, color_vec.z as u8]),
+                    Rgba([r, g, b, (v * 255.) as u8]),
                 )
             });
         }
     }
-
+    image.save("test.png");
     imageops::flip_vertical(&image)
 }
 
-pub fn make_text(text: &str) -> RgbImage {
+pub fn make_text(text: &str) -> RgbaImage {
     let scale = rusttype::Scale::uniform(256.0);
     let font_data = include_bytes!("../fonts/Courier New.ttf");
     let font = rusttype::Font::try_from_bytes(font_data as &[u8]).expect("Constructing font");
-    make_text_image(text, font, scale)
+    make_text_image(text, font, scale, Rgb([150, 0, 0]))
 }
 
 pub fn make_scene(game: &Game, resources: &GameResources) -> Vec<GameObject> {
