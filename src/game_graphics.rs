@@ -158,15 +158,15 @@ pub fn make_menu(menu: &Menu, resources: &UIResources) -> Vec<GameObject> {
 }
 
 pub fn make_player(game: &Game, resources: &GameResources, chop: &Animation) -> GameObject {
-    let pos_x = match game.get_player_pos() {
-        PlayerPos::Left => -1.,
-        PlayerPos::Right => 1.,
+    let (pos_x, flip) = match game.get_player_pos() {
+        PlayerPos::Left => (-1., Matrix4::<f32>::identity()),
+        PlayerPos::Right => (1., transform::reflect_x()),
     };
     GameObject {
         model: vec![Object {
             tess: resources.unit_quad,
             texture: chop.get_current_texture(),
-            transform: Matrix4::<f32>::identity(),
+            transform: flip,
         }],
         transform: transform::translation2(pos_x, 0.5),
     }

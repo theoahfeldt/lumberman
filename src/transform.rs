@@ -21,3 +21,7 @@ pub fn translation2(x: f32, y: f32) -> Matrix4<f32> {
 pub fn translation3(x: f32, y: f32, z: f32) -> Matrix4<f32> {
     Translation3::new(x, y, z).to_homogeneous()
 }
+
+pub fn reflect_x() -> Matrix4<f32> {
+    Matrix4::from_partial_diagonal(&[-1., 1., 1., 1.])
+}
