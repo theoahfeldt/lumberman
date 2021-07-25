@@ -133,12 +133,12 @@ fn main_loop(surface: GlfwSurface) {
                     shd_gate.shade(&mut ui_program, |mut iface, uni, mut rdr_gate| {
                         rdr_gate.render(&render_st, |mut tess_gate| {
                             ui_objects.iter().try_for_each(|ui| {
-                                iface.set(&uni.model_transform, ui.transform.to_matrix().into());
+                                iface.set(&uni.model_transform, ui.transform.into());
                                 ui.model.clone().iter().try_for_each(|o| {
                                     let bound_tex =
                                         pipeline.bind_texture(rm.get_texture(&o.texture))?;
                                     iface.set(&uni.tex, bound_tex.binding());
-                                    iface.set(&uni.local_transform, o.get_transform().into());
+                                    iface.set(&uni.local_transform, o.transform.into());
                                     tess_gate.render(rm.get_tess(&o.tess))
                                 })
                             })
@@ -150,12 +150,12 @@ fn main_loop(surface: GlfwSurface) {
                         iface.set(&uni.view, view.into());
                         rdr_gate.render(&render_st, |mut tess_gate| {
                             game_objects.iter().try_for_each(|gm| {
-                                iface.set(&uni.model_transform, gm.transform.to_matrix().into());
+                                iface.set(&uni.model_transform, gm.transform.into());
                                 gm.model.clone().iter().try_for_each(|o| {
                                     let bound_tex =
                                         pipeline.bind_texture(rm.get_texture(&o.texture))?;
                                     iface.set(&uni.tex, bound_tex.binding());
-                                    iface.set(&uni.local_transform, o.get_transform().into());
+                                    iface.set(&uni.local_transform, o.transform.into());
                                     tess_gate.render(rm.get_tess(&o.tess))
                                 })
                             })

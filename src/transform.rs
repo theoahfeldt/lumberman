@@ -1,66 +1,23 @@
-use rapier3d::na::{Matrix2, Matrix3, Matrix4, Rotation2, Translation3, UnitQuaternion};
+use rapier3d::na::{Matrix2, Matrix3, Matrix4, Rotation2, Translation3};
 
-#[derive(Clone)]
-pub struct Transform {
-    pub scale: Option<[f32; 3]>,
-    pub rotation: Option<UnitQuaternion<f32>>,
-    pub translation: Option<Translation3<f32>>,
+pub fn rotation2(rad: f32) -> Matrix4<f32> {
+    Rotation2::new(rad).to_homogeneous().to_homogeneous()
 }
 
-impl Transform {
-    pub fn to_matrix(&self) -> Matrix4<f32> {
-        let mut local_transform = Matrix4::<f32>::identity();
-        if let Some(ref scale) = self.scale {
-            let scale = Matrix3::from_partial_diagonal(&scale[..]);
-            local_transform = scale.to_homogeneous() * local_transform;
-        }
-        if let Some(ref rotation) = self.rotation {
-            local_transform = rotation.to_homogeneous() * local_transform
-        }
-        if let Some(translation) = self.translation {
-            local_transform = translation.to_homogeneous() * local_transform
-        }
-        local_transform
-    }
-
-    pub fn new() -> Self {
-        Self {
-            scale: None,
-            rotation: None,
-            translation: None,
-        }
-    }
+pub fn scale2(x: f32, y: f32) -> Matrix4<f32> {
+    Matrix2::from_partial_diagonal(&[x, y])
+        .to_homogeneous()
+        .to_homogeneous()
 }
 
-#[derive(Clone)]
-pub struct Transform2 {
-    pub scale: Option<[f32; 2]>,
-    pub rotation: Option<f32>, // Radians
-    pub translation: Option<Translation3<f32>>,
+pub fn scale3(x: f32, y: f32, z: f32) -> Matrix4<f32> {
+    Matrix3::from_partial_diagonal(&[x, y, z]).to_homogeneous()
 }
 
-impl Transform2 {
-    pub fn to_matrix(&self) -> Matrix4<f32> {
-        let mut local_transform = Matrix4::<f32>::identity();
-        if let Some(ref scale) = self.scale {
-            let scale = Matrix2::from_partial_diagonal(&scale[..]);
-            local_transform = scale.to_homogeneous().to_homogeneous() * local_transform;
-        }
-        if let Some(rotation) = self.rotation {
-            local_transform =
-                Rotation2::new(rotation).to_homogeneous().to_homogeneous() * local_transform
-        }
-        if let Some(translation) = self.translation {
-            local_transform = translation.to_homogeneous() * local_transform
-        }
-        local_transform
-    }
+pub fn translation2(x: f32, y: f32) -> Matrix4<f32> {
+    translation3(x, y, 0.)
+}
 
-    pub fn new() -> Self {
-        Self {
-            scale: None,
-            rotation: None,
-            translation: None,
-        }
-    }
+pub fn translation3(x: f32, y: f32, z: f32) -> Matrix4<f32> {
+    Translation3::new(x, y, z).to_homogeneous()
 }

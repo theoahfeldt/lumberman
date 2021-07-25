@@ -1,7 +1,4 @@
-use crate::{
-    semantics::Vertex,
-    transform::{Transform, Transform2},
-};
+use crate::semantics::Vertex;
 use image::RgbaImage;
 
 use luminance_front::{
@@ -52,30 +49,10 @@ pub struct TextureResource {
 pub struct Object {
     pub tess: TessResource,
     pub texture: TextureResource,
-    pub transform: Transform,
-}
-
-impl Object {
-    pub fn get_transform(&self) -> Matrix4<f32> {
-        self.transform.to_matrix()
-    }
-}
-
-#[derive(Clone)]
-pub struct Object2 {
-    pub tess: TessResource,
-    pub texture: TextureResource,
-    pub transform: Transform2,
-}
-
-impl Object2 {
-    pub fn get_transform(&self) -> Matrix4<f32> {
-        self.transform.to_matrix()
-    }
+    pub transform: Matrix4<f32>,
 }
 
 pub type Model = Vec<Object>;
-pub type Model2 = Vec<Object2>;
 
 fn make_texture(
     context: &mut impl GraphicsContext<Backend = Backend>,

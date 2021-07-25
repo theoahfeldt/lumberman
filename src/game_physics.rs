@@ -1,10 +1,10 @@
 use crate::{
     game::{Branch, Game, PlayerAction},
     game_graphics::{GameObject, GameResources},
-    transform::Transform,
+    transform,
 };
 use rand::distributions::Distribution;
-use rapier3d::{na::Translation3, prelude::*};
+use rapier3d::prelude::*;
 use statrs::distribution::Normal;
 use std::collections::VecDeque;
 
@@ -207,34 +207,24 @@ impl GamePhysics {
             .translation()
             .y;
         let tree = game.tree.clone();
-        let tree = tree.iter().enumerate().map(|(i, val)| {
-            let model = match val {
+        let tree = tree.iter().enumerate().map(|(i, val)| GameObject {
+            model: match val {
                 Branch::None => resources.log.clone(),
                 Branch::Left => resources.branch_left.clone(),
                 Branch::Right => resources.branch_right.clone(),
-            };
-            let rotation = None;
-            let transform = Transform {
-                scale: None,
-                rotation,
-                translation: Some(Translation3::new(0., base + i as f32, 0.)),
-            };
-            GameObject { model, transform }
+            },
+            transform: transform::translation3(0., base + i as f32, 0.),
         });
         let flying = self.flying_logs.iter().map(|log| {
             let body = self.rigid_bodies.get(log.handle).unwrap();
-            let isometry = body.position();
-            let transform = Transform {
-                scale: None,
-                rotation: Some(isometry.rotation),
-                translation: Some(isometry.translation),
-            };
-            let model = match log.branch {
-                Branch::None => resources.log.clone(),
-                Branch::Left => resources.branch_left.clone(),
-                Branch::Right => resources.branch_right.clone(),
-            };
-            GameObject { model, transform }
+            GameObject {
+                model: match log.branch {
+                    Branch::None => resources.log.clone(),
+                    Branch::Left => resources.branch_left.clone(),
+                    Branch::Right => resources.branch_right.clone(),
+                },
+                transform: body.position().to_homogeneous(),
+            }
         });
         tree.chain(flying).collect()
     }

@@ -2,7 +2,7 @@ use crate::{
     animation::GameAnimations,
     audio::{AudioPlayer, AudioResources},
     game::{Game, GameEvent, PlayerAction},
-    game_graphics::{self, GameObject, GameResources, UIObject, UIResources},
+    game_graphics::{self, GameObject, GameResources, UIResources},
     game_physics::GamePhysics,
     menu::{Menu, MenuAction, MenuResult},
 };
@@ -112,7 +112,7 @@ impl GameRunner {
         }
     }
 
-    pub fn make_ui(&self, resources: &UIResources) -> Vec<UIObject> {
+    pub fn make_ui(&self, resources: &UIResources) -> Vec<GameObject> {
         match self.state {
             GameState::StartMenu => game_graphics::make_menu(&self.menu, resources),
             GameState::InGame => game_graphics::make_ui(&self.game, resources),
