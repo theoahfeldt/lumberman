@@ -9,3 +9,4 @@ pub mod object;
 pub mod semantics;
 pub mod text;
 pub mod transform;
+pub mod animation;

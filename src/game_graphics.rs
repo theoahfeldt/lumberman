@@ -1,11 +1,13 @@
 use crate::{
-    game::Game,
+    animation::Animation,
+    game::{Game, PlayerPos},
     geometry,
     menu::Menu,
     object::{Model, Model2, Object, Object2, ResourceManager, TessResource, TextureResource},
     text,
     transform::{Transform, Transform2},
 };
+use image::io::Reader;
 use luminance::context::GraphicsContext;
 use luminance_front::Backend;
 use rapier3d::na::{RealField, Translation3, UnitQuaternion, Vector3};
@@ -25,6 +27,7 @@ pub struct GameResources {
     pub log: Model,
     pub branch_left: Model,
     pub branch_right: Model,
+    pub unit_quad: TessResource,
 }
 
 pub struct UIResources {
@@ -129,10 +132,13 @@ impl GameResources {
         let branch_left: Vec<Object> = vec![log_obj.clone(), branch.clone()];
         branch.transform.translation = Some(Translation3::new(0.9, 0., 0.));
         let branch_right: Vec<Object> = vec![log_obj, branch];
+
+        let unit_quad = rm.make_tess(ctxt, geometry::quad(1., 1.));
         Self {
             log,
             branch_left,
             branch_right,
+            unit_quad,
         }
     }
 }
@@ -184,4 +190,27 @@ pub fn make_menu(menu: &Menu, resources: &UIResources) -> Vec<UIObject> {
             },
         })
         .collect()
+}
+
+pub fn make_player(game: &Game, resources: &GameResources, chop: &Animation) -> GameObject {
+    let pos_x = match game.get_player_pos() {
+        PlayerPos::Left => -1.,
+        PlayerPos::Right => 1.,
+    };
+    GameObject {
+        model: vec![Object {
+            tess: resources.unit_quad,
+            texture: chop.get_current_texture(),
+            transform: Transform {
+                scale: None,
+                rotation: None,
+                translation: None,
+            },
+        }],
+        transform: Transform {
+            scale: None,
+            rotation: None,
+            translation: Some(Translation3::new(pos_x, 0.5, 0.)),
+        },
+    }
 }

@@ -1,4 +1,5 @@
 use crate::{
+    animation::GameAnimations,
     audio::{AudioPlayer, AudioResources},
     game::{Game, GameEvent, PlayerAction},
     game_graphics::{self, GameObject, GameResources, UIObject, UIResources},
@@ -17,6 +18,7 @@ pub struct GameRunner {
     menu: Menu,
     game: Game,
     physics: GamePhysics,
+    animations: GameAnimations,
     player: AudioPlayer,
     event: Option<GameEvent>,
 }
@@ -49,12 +51,13 @@ impl GameAction {
 }
 
 impl GameRunner {
-    pub fn new() -> Self {
+    pub fn new(animations: GameAnimations) -> Self {
         Self {
             menu: Menu::new(),
             state: GameState::StartMenu,
             game: Game::new(),
             physics: GamePhysics::new(),
+            animations,
             player: AudioPlayer::new(),
             event: None,
         }
@@ -77,6 +80,7 @@ impl GameRunner {
             GameState::InGame => {
                 if let Some(pa) = action.and_then(GameAction::to_player_action) {
                     let event = self.game.update(pa);
+                    self.animations.update();
                     self.physics.update(&self.game, pa);
                     self.physics.step();
                     if let GameEvent::Finished(_) = event {
@@ -119,7 +123,15 @@ impl GameRunner {
     pub fn make_scene(&self, resources: &GameResources) -> Vec<GameObject> {
         match self.state {
             GameState::StartMenu => vec![],
-            GameState::InGame => self.physics.make_scene(&self.game, resources),
+            GameState::InGame => {
+                let mut scene = self.physics.make_scene(&self.game, resources);
+                scene.push(game_graphics::make_player(
+                    &self.game,
+                    resources,
+                    &self.animations.chop,
+                ));
+                scene
+            }
             GameState::GameOver => vec![],
         }
     }

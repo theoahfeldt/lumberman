@@ -1,5 +1,6 @@
 use glfw::{Action, Context as _, Key, WindowEvent};
 use lumber::{
+    animation::GameAnimations,
     audio::AudioResources,
     game_graphics::{GameResources, UIResources},
     game_state::{GameAction, GameRunner},
@@ -74,9 +75,10 @@ fn main_loop(surface: GlfwSurface) {
     let mut rm = object::ResourceManager::new();
     let game_resources = GameResources::new(&mut rm, &mut ctxt);
     let ui_resources = UIResources::new(&mut rm, &mut ctxt);
+    let game_animations = GameAnimations::new(&mut rm, &mut ctxt);
     let audio_resources = AudioResources::new();
 
-    let mut runner = GameRunner::new();
+    let mut runner = GameRunner::new(game_animations);
     let mut action: Option<GameAction> = None;
 
     let [width, height] = back_buffer.size();

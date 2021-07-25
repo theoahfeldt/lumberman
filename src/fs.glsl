@@ -12,11 +12,13 @@ void main() {
   float ambient_strength = 0.2;
   vec3 ambient = ambient_strength * light_color;
 
-  vec3 obj_color = vec3(texture(tex, v_uv));
+  vec4 tex_color = texture(tex, v_uv);
+  vec3 obj_color = vec3(tex_color);
+  float transparency = tex_color.w;
 
   float diff = max(dot(v_normal, light_dir), 0.0);
   vec3 diffuse = diff * light_color;
 
   vec3 result = (ambient + diffuse) * obj_color;
-  frag_color = vec4(result, 1.);
+  frag_color = vec4(result, transparency);
 }

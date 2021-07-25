@@ -18,8 +18,8 @@ impl Distribution<Branch> for Standard {
     }
 }
 
-#[derive(PartialEq)]
-enum PlayerPos {
+#[derive(PartialEq, Clone, Copy)]
+pub enum PlayerPos {
     Left,
     Right,
 }
@@ -101,5 +101,9 @@ impl Game {
 
     pub fn get_score(&self) -> u32 {
         self.player.score
+    }
+
+    pub fn get_player_pos(&self) -> PlayerPos {
+        self.player.pos
     }
 }
