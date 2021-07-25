@@ -57,7 +57,7 @@ impl UIResources {
 
         let start_txt = rm.make_texture(ctxt, &text::make_text("Start"));
         let start = vec![Object2 {
-            tess: unit_quad.clone(),
+            tess: unit_quad,
             texture: start_txt,
             transform: Transform2 {
                 scale: Some([0.8, 0.3]),
@@ -68,7 +68,7 @@ impl UIResources {
 
         let quit_txt = rm.make_texture(ctxt, &text::make_text("Quit"));
         let quit = vec![Object2 {
-            tess: unit_quad.clone(),
+            tess: unit_quad,
             texture: quit_txt,
             transform: Transform2 {
                 scale: Some([0.8, 0.3]),
@@ -93,7 +93,7 @@ impl GameResources {
     ) -> Self {
         let cylinder = rm.make_tess(ctxt, geometry::cylinder(1., 0.5, 20));
 
-        let bark_img = image::io::Reader::open("textures/log_texture.png")
+        let bark_img = Reader::open("textures/log_texture.png")
             .unwrap()
             .decode()
             .unwrap()
@@ -102,8 +102,8 @@ impl GameResources {
 
         let angle: f32 = RealField::frac_pi_2();
         let log_obj = Object {
-            tess: cylinder.clone(),
-            texture: bark.clone(),
+            tess: cylinder,
+            texture: bark,
             transform: Transform {
                 translation: None,
                 scale: None,
@@ -144,7 +144,7 @@ pub fn make_ui(game: &Game, resources: &UIResources) -> Vec<UIObject> {
         .chars()
         .enumerate()
         .map(|(i, c)| Object2 {
-            tess: resources.unit_quad.clone(),
+            tess: resources.unit_quad,
             texture: resources.char_textures.get(&c).unwrap().clone(),
             transform: Transform2 {
                 scale: None,

@@ -38,12 +38,12 @@ impl Mesh {
 
 pub type RgbaTexture = Texture<Dim2, NormRGBA8UI>;
 
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TessResource {
     idx: u32,
 }
 
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TextureResource {
     idx: u32,
 }
