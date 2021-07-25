@@ -7,4 +7,5 @@ pub mod geometry;
 pub mod menu;
 pub mod object;
 pub mod semantics;
+pub mod text;
 pub mod transform;
