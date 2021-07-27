@@ -10,7 +10,8 @@ void main() {
   vec3 light_dir = normalize(vec3(0., 0.5, 1.));
 
   float ambient_strength = 0.2;
-  vec3 ambient = ambient_strength * light_color;
+  vec3 ambient_color = vec3(1., 0.8, 0.6);
+  vec3 ambient = ambient_strength * ambient_color;
 
   vec4 tex_color = texture(tex, v_uv);
   vec3 obj_color = vec3(tex_color);

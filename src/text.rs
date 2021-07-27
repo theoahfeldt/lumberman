@@ -20,7 +20,7 @@ pub fn make_char_image(c: char, font: Font, scale: Scale, color: Rgb<u8>) -> Rgb
 pub fn make_char(c: char) -> RgbaImage {
     let scale = rusttype::Scale::uniform(256.0);
     let font = rusttype::Font::try_from_bytes(FONT_DATA as &[u8]).expect("Constructing font");
-    make_char_image(c, font, scale, Rgb([150, 0, 0]))
+    make_char_image(c, font, scale, Rgb([255, 255, 255]))
 }
 
 pub fn make_text_image(text: &str, font: Font, scale: Scale, color: Rgb<u8>) -> RgbaImage {
@@ -71,5 +71,5 @@ pub fn make_text_image(text: &str, font: Font, scale: Scale, color: Rgb<u8>) -> 
 pub fn make_text(text: &str) -> RgbaImage {
     let scale = rusttype::Scale::uniform(256.0);
     let font = rusttype::Font::try_from_bytes(FONT_DATA as &[u8]).expect("Constructing font");
-    make_text_image(text, font, scale, Rgb([150, 0, 0]))
+    make_text_image(text, font, scale, Rgb([255, 255, 255]))
 }

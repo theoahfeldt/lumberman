@@ -89,8 +89,8 @@ fn main_loop(surface: GlfwSurface) {
     let projection = Matrix4::new_perspective(width as f32 / height as f32, FOVY, Z_NEAR, Z_FAR);
 
     let view = Matrix4::look_at_rh(
-        &Point3::new(0., 1., 3.),
-        &Point3::new(0., 2.2, 0.),
+        &Point3::new(0., 1.2, 2.5),
+        &Point3::new(0., 1.4, 0.),
         &Vector3::y_axis(),
     );
 
