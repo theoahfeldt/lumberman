@@ -2,7 +2,7 @@ use glfw::{Action, Context as _, Key, WindowEvent};
 use lumber::{
     animation::GameAnimations,
     audio::AudioResources,
-    game_graphics::{GameResources, UIResources},
+    game_graphics::{self, GameResources, UIResources},
     game_state::{GameAction, GameRunner},
     object,
     semantics::{Semantics, ShaderInterface},
@@ -10,6 +10,7 @@ use lumber::{
 use luminance_front::{
     blending::{Blending, Equation, Factor},
     context::GraphicsContext,
+    depth_test::DepthWrite,
     pipeline::PipelineState,
     render_state::RenderState,
 };
@@ -81,12 +82,15 @@ fn main_loop(surface: GlfwSurface) {
     let mut runner = GameRunner::new(game_animations);
     let mut action: Option<GameAction> = None;
 
+    // Background
+    let background_object = game_graphics::make_background(&mut rm, &mut ctxt);
+
     let [width, height] = back_buffer.size();
     let projection = Matrix4::new_perspective(width as f32 / height as f32, FOVY, Z_NEAR, Z_FAR);
 
     let view = Matrix4::look_at_rh(
         &Point3::new(0., 1., 3.),
-        &Point3::new(0., 1., 0.),
+        &Point3::new(0., 2.2, 0.),
         &Vector3::y_axis(),
     );
 
@@ -131,10 +135,26 @@ fn main_loop(surface: GlfwSurface) {
                 &PipelineState::default().set_clear_color(color),
                 |pipeline, mut shd_gate| {
                     shd_gate.shade(&mut ui_program, |mut iface, uni, mut rdr_gate| {
+                        rdr_gate.render(
+                            &RenderState::default().set_depth_write(DepthWrite::Off),
+                            |mut tess_gate| {
+                                iface.set(&uni.model_transform, Matrix4::identity().into());
+
+                                let bound_tex = pipeline
+                                    .bind_texture(rm.get_texture(&background_object.texture))?;
+                                iface.set(&uni.tex, bound_tex.binding());
+                                iface.set(&uni.local_transform, background_object.transform.into());
+                                tess_gate.render(rm.get_tess(&background_object.tess))
+                            },
+                        )
+                    })?;
+                    shd_gate.shade(&mut program, |mut iface, uni, mut rdr_gate| {
+                        iface.set(&uni.projection, projection.into());
+                        iface.set(&uni.view, view.into());
                         rdr_gate.render(&render_st, |mut tess_gate| {
-                            ui_objects.iter().try_for_each(|ui| {
-                                iface.set(&uni.model_transform, ui.transform.into());
-                                ui.model.clone().iter().try_for_each(|o| {
+                            game_objects.iter().try_for_each(|gm| {
+                                iface.set(&uni.model_transform, gm.transform.into());
+                                gm.model.clone().iter().try_for_each(|o| {
                                     let bound_tex =
                                         pipeline.bind_texture(rm.get_texture(&o.texture))?;
                                     iface.set(&uni.tex, bound_tex.binding());
@@ -144,14 +164,11 @@ fn main_loop(surface: GlfwSurface) {
                             })
                         })
                     })?;
-
-                    shd_gate.shade(&mut program, |mut iface, uni, mut rdr_gate| {
-                        iface.set(&uni.projection, projection.into());
-                        iface.set(&uni.view, view.into());
+                    shd_gate.shade(&mut ui_program, |mut iface, uni, mut rdr_gate| {
                         rdr_gate.render(&render_st, |mut tess_gate| {
-                            game_objects.iter().try_for_each(|gm| {
-                                iface.set(&uni.model_transform, gm.transform.into());
-                                gm.model.clone().iter().try_for_each(|o| {
+                            ui_objects.iter().try_for_each(|ui| {
+                                iface.set(&uni.model_transform, ui.transform.into());
+                                ui.model.clone().iter().try_for_each(|o| {
                                     let bound_tex =
                                         pipeline.bind_texture(rm.get_texture(&o.texture))?;
                                     iface.set(&uni.tex, bound_tex.binding());

@@ -6,7 +6,7 @@ use crate::{
     object::{Model, Object, ResourceManager, TessResource, TextureResource},
     text, transform,
 };
-use image::io::Reader;
+use image::{imageops, io::Reader};
 use luminance::context::GraphicsContext;
 use luminance_front::Backend;
 use rapier3d::na::{Matrix4, RealField, UnitQuaternion, Vector3};
@@ -158,16 +158,36 @@ pub fn make_menu(menu: &Menu, resources: &UIResources) -> Vec<GameObject> {
 }
 
 pub fn make_player(game: &Game, resources: &GameResources, chop: &Animation) -> GameObject {
-    let (pos_x, flip) = match game.get_player_pos() {
-        PlayerPos::Left => (-1., Matrix4::<f32>::identity()),
-        PlayerPos::Right => (1., transform::reflect_x()),
-    };
+    let mut pos_x = -1.1;
+    let mut transform = transform::scale3(1.2, 1.2, 1.);
+    if game.get_player_pos() == PlayerPos::Right {
+        pos_x *= -1.;
+        transform *= transform::reflect_x();
+    }
     GameObject {
         model: vec![Object {
             tess: resources.unit_quad,
             texture: chop.get_current_texture(),
-            transform: flip,
+            transform,
         }],
         transform: transform::translation2(pos_x, 0.5),
+    }
+}
+
+pub fn make_background(
+    rm: &mut ResourceManager,
+    ctxt: &mut impl GraphicsContext<Backend = Backend>,
+) -> Object {
+    let img = Reader::open("textures/forest-background.jpg")
+        .unwrap()
+        .decode()
+        .unwrap()
+        .into_rgba8();
+    let texture = rm.make_texture(ctxt, &imageops::flip_vertical(&img));
+    let tess = rm.make_tess(ctxt, geometry::quad(2., 2.));
+    Object {
+        tess,
+        texture,
+        transform: transform::translation3(0., 0., -1.),
     }
 }
