@@ -1,10 +1,13 @@
+use glfw::{FlushedMessages, WindowEvent};
+
 use crate::{
     animation::GameAnimations,
     audio::{AudioPlayer, AudioResources},
-    game::{Game, GameEvent, PlayerAction},
+    controls::{Controls, GameAction},
+    game::{Game, GameEvent},
     game_graphics::{self, GameObject, GameResources, UIResources},
     game_physics::GamePhysics,
-    menu::{Menu, MenuAction, MenuResult},
+    menu::{Menu, MenuResult},
 };
 
 enum GameState {
@@ -21,33 +24,7 @@ pub struct GameRunner {
     animations: GameAnimations,
     player: AudioPlayer,
     event: Option<GameEvent>,
-}
-
-pub enum GameAction {
-    Left,
-    Right,
-    Down,
-    Up,
-    Enter,
-}
-
-impl GameAction {
-    fn to_player_action(self) -> Option<PlayerAction> {
-        match self {
-            Self::Left => Some(PlayerAction::ChopLeft),
-            Self::Right => Some(PlayerAction::ChopRight),
-            _ => None,
-        }
-    }
-
-    fn to_menu_action(self) -> Option<MenuAction> {
-        match self {
-            Self::Up => Some(MenuAction::Up),
-            Self::Down => Some(MenuAction::Down),
-            Self::Enter => Some(MenuAction::Select),
-            _ => None,
-        }
-    }
+    controls: Controls,
 }
 
 impl GameRunner {
@@ -60,14 +37,23 @@ impl GameRunner {
             animations,
             player: AudioPlayer::new(),
             event: None,
+            controls: Controls::default(),
         }
     }
 
-    pub fn update(&mut self, action: Option<GameAction>) -> bool {
+    pub fn update(&mut self, events: FlushedMessages<(f64, WindowEvent)>) -> bool {
         let mut to_quit = false;
+        let action = events
+            .map(|(_, e)| {
+                if let WindowEvent::Close = e {
+                    to_quit = true
+                }
+                e
+            })
+            .find_map(|e| self.controls.convert(e));
         match self.state {
             GameState::StartMenu => {
-                if let Some(ma) = action.and_then(GameAction::to_menu_action) {
+                if let Some(ma) = action.and_then(GameAction::into_menu_action) {
                     match self.menu.update(ma) {
                         Some(MenuResult::Start) => {
                             self.state = GameState::InGame;
@@ -78,7 +64,7 @@ impl GameRunner {
                 }
             }
             GameState::InGame => {
-                if let Some(pa) = action.and_then(GameAction::to_player_action) {
+                if let Some(pa) = action.and_then(GameAction::into_player_action) {
                     let event = self.game.update(pa);
                     self.animations.update();
                     self.physics.update(&self.game, pa);

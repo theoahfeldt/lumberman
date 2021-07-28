@@ -1,9 +1,9 @@
-use glfw::{Action, Context as _, Key, WindowEvent};
+use glfw::Context as _;
 use lumber::{
     animation::GameAnimations,
     audio::AudioResources,
     game_graphics::{self, GameResources, UIResources},
-    game_state::{GameAction, GameRunner},
+    game_state::GameRunner,
     object,
     semantics::{Semantics, ShaderInterface},
 };
@@ -34,7 +34,7 @@ fn main() {
         width: 960,
         height: 540,
     };
-    let surface = GlfwSurface::new_gl33("Hello, world!", WindowOpt::default().set_dim(dim));
+    let surface = GlfwSurface::new_gl33("Lumberman™", WindowOpt::default().set_dim(dim));
 
     match surface {
         Ok(surface) => {
@@ -77,11 +77,8 @@ fn main_loop(surface: GlfwSurface) {
     let ui_resources = UIResources::new(&mut rm, &mut ctxt);
     let game_animations = GameAnimations::new(&mut rm, &mut ctxt);
     let audio_resources = AudioResources::new();
-
     let mut runner = GameRunner::new(game_animations);
-    let mut action: Option<GameAction> = None;
 
-    // Background
     let background_object = game_graphics::make_background(&mut rm, &mut ctxt);
 
     let [width, height] = back_buffer.size();
@@ -96,31 +93,12 @@ fn main_loop(surface: GlfwSurface) {
     runner.play_bgm(&audio_resources);
 
     'app: loop {
-        // handle events
         ctxt.window.glfw.poll_events();
-        for (_, event) in glfw::flush_messages(&events) {
-            match event {
-                WindowEvent::Close | WindowEvent::Key(Key::Escape, _, Action::Release, _) => {
-                    break 'app
-                }
-                WindowEvent::Key(Key::Left, _, Action::Press, _) => action = Some(GameAction::Left),
-                WindowEvent::Key(Key::Right, _, Action::Press, _) => {
-                    action = Some(GameAction::Right)
-                }
-                WindowEvent::Key(Key::Up, _, Action::Press, _) => action = Some(GameAction::Up),
-                WindowEvent::Key(Key::Down, _, Action::Press, _) => action = Some(GameAction::Down),
-                WindowEvent::Key(Key::Enter, _, Action::Press, _) => {
-                    action = Some(GameAction::Enter)
-                }
-                _ => (),
-            }
-        }
 
-        if runner.update(action) {
+        if runner.update(glfw::flush_messages(&events)) {
             break 'app;
         }
         runner.play_audio(&audio_resources);
-        action = None;
 
         let ui_objects = runner.make_ui(&ui_resources);
         let game_objects = runner.make_scene(&game_resources);
