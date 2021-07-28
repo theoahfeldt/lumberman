@@ -101,6 +101,10 @@ impl GameRunner {
         to_quit
     }
 
+    pub fn play_bgm(&mut self, resources: &AudioResources) {
+        self.player.play(resources.bgm.clone());
+    }
+
     pub fn play_audio(&mut self, resources: &AudioResources) {
         match self.state {
             GameState::InGame => {

@@ -1,16 +1,25 @@
-use std::{fs::File, io::BufReader};
+use std::{fs::File, io::BufReader, time::Duration};
 
-use rodio::{source::Buffered, Decoder, OutputStream, OutputStreamHandle, Sample, Sink, Source};
+use rodio::{
+    source::{Buffered, FadeIn, Repeat},
+    Decoder, OutputStream, OutputStreamHandle, Sample, Sink, Source,
+};
 
 pub struct AudioResources {
     pub chop: Buffered<Decoder<BufReader<File>>>,
+    pub bgm: FadeIn<Repeat<Decoder<BufReader<File>>>>,
 }
 
 impl AudioResources {
     pub fn new() -> Self {
-        let file = std::fs::File::open("audios/chop.wav").unwrap();
-        let chop = Decoder::new(BufReader::new(file)).unwrap().buffered();
-        Self { chop }
+        let chop_file = std::fs::File::open("audios/chop.wav").unwrap();
+        let chop = Decoder::new(BufReader::new(chop_file)).unwrap().buffered();
+        let bgm_file = std::fs::File::open("audios/bird-loop.mp3").unwrap();
+        let bgm = Decoder::new(BufReader::new(bgm_file))
+            .unwrap()
+            .repeat_infinite()
+            .fade_in(Duration::from_secs(2));
+        Self { chop, bgm }
     }
 }
 

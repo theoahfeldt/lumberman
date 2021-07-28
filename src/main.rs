@@ -94,6 +94,8 @@ fn main_loop(surface: GlfwSurface) {
         &Vector3::y_axis(),
     );
 
+    runner.play_bgm(&audio_resources);
+
     'app: loop {
         // handle events
         ctxt.window.glfw.poll_events();
