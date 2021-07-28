@@ -10,9 +10,8 @@ pub struct ShaderInterface {
     #[uniform(unbound)]
     pub view: Uniform<[[f32; 4]; 4]>,
     #[uniform(unbound)]
-    pub local_transform: Uniform<[[f32; 4]; 4]>,
+    pub model: Uniform<[[f32; 4]; 4]>,
     #[uniform(unbound)]
-    pub model_transform: Uniform<[[f32; 4]; 4]>,
     pub tex: Uniform<TextureBinding<Dim2, NormUnsigned>>,
 }
 
