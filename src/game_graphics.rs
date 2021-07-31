@@ -118,10 +118,15 @@ impl GameResources {
     }
 }
 
-pub fn make_ui(game: &Game, resources: &UIResources) -> Vec<GameObject> {
-    let model = game
-        .get_score()
-        .to_string()
+fn make_text_object(
+    resources: &UIResources,
+    text: String,
+    height: f32,
+    width: f32,
+    x: f32,
+    y: f32,
+) -> GameObject {
+    let model = text
         .chars()
         .enumerate()
         .map(|(i, c)| Object {
@@ -130,10 +135,19 @@ pub fn make_ui(game: &Game, resources: &UIResources) -> Vec<GameObject> {
             transform: transform::translation3(i as f32, 0., 0.),
         })
         .collect();
-    let score = GameObject {
+    let length = text.len() as f32;
+    let centering = transform::translation2(0.5 - length / 2., 0.);
+    let scale = transform::scale2(width / length, height);
+    GameObject {
         model,
-        transform: transform::translation3(-0.8, 0.7, 0.) * transform::scale2(0.25, 0.5),
-    };
+        transform: transform::translation2(x, y) * scale * centering,
+    }
+}
+
+pub fn make_ui(game: &Game, resources: &UIResources) -> Vec<GameObject> {
+    let text = game.get_score().to_string();
+    let len = text.len() as f32;
+    let score = make_text_object(resources, text, 0.4, 0.2 * len, 0., 0.75);
     vec![score]
 }
 
@@ -190,4 +204,14 @@ pub fn make_background(
         texture,
         transform: transform::translation3(0., 0., -1.),
     }
+}
+
+pub fn make_game_over_ui(game: &Game, resources: &UIResources) -> Vec<GameObject> {
+    let text = game.get_score().to_string();
+    let len = text.len() as f32;
+    let score = make_text_object(resources, text, 0.4, 0.2 * len, 0., 0.);
+    let text = "SCORE".to_string();
+    let len = text.len() as f32;
+    let text = make_text_object(resources, text, 0.4, 0.2 * len, 0., 0.5);
+    vec![text, score]
 }

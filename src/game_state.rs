@@ -79,9 +79,12 @@ impl GameRunner {
                 }
             }
             GameState::GameOver => {
-                self.state = GameState::StartMenu;
-                self.game = Game::new();
-                self.physics.reset();
+                self.physics.step();
+                if let Some(GameAction::Enter) = action {
+                    self.state = GameState::StartMenu;
+                    self.game = Game::new();
+                    self.physics.reset();
+                }
             }
         }
         to_quit
@@ -106,23 +109,25 @@ impl GameRunner {
         match self.state {
             GameState::StartMenu => game_graphics::make_menu(&self.menu, resources),
             GameState::InGame => game_graphics::make_ui(&self.game, resources),
-            GameState::GameOver => vec![],
+            GameState::GameOver => game_graphics::make_game_over_ui(&self.game, resources),
         }
+    }
+
+    fn make_game_scene(&self, resources: &GameResources) -> Vec<GameObject> {
+        let mut scene = self.physics.make_scene(&self.game, resources);
+        scene.push(game_graphics::make_player(
+            &self.game,
+            resources,
+            &self.animations.chop,
+        ));
+        scene
     }
 
     pub fn make_scene(&self, resources: &GameResources) -> Vec<GameObject> {
         match self.state {
             GameState::StartMenu => vec![],
-            GameState::InGame => {
-                let mut scene = self.physics.make_scene(&self.game, resources);
-                scene.push(game_graphics::make_player(
-                    &self.game,
-                    resources,
-                    &self.animations.chop,
-                ));
-                scene
-            }
-            GameState::GameOver => vec![],
+            GameState::InGame => self.make_game_scene(resources),
+            GameState::GameOver => self.make_game_scene(resources),
         }
     }
 }
