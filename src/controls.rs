@@ -38,18 +38,30 @@ pub struct Controls {
 
 impl Default for Controls {
     fn default() -> Self {
-        Self::new(Key::Up, Key::Down, Key::Left, Key::Right, Key::Enter)
+        let mut bindings = HashMap::new();
+        bindings.insert(Key::Up, GameAction::Up);
+        bindings.insert(Key::Left, GameAction::Left);
+        bindings.insert(Key::Down, GameAction::Down);
+        bindings.insert(Key::Right, GameAction::Right);
+
+        bindings.insert(Key::W, GameAction::Up);
+        bindings.insert(Key::A, GameAction::Left);
+        bindings.insert(Key::S, GameAction::Down);
+        bindings.insert(Key::D, GameAction::Right);
+
+        bindings.insert(Key::I, GameAction::Up);
+        bindings.insert(Key::J, GameAction::Left);
+        bindings.insert(Key::K, GameAction::Down);
+        bindings.insert(Key::L, GameAction::Right);
+
+        bindings.insert(Key::Enter, GameAction::Enter);
+
+        Self::new(bindings)
     }
 }
 
 impl Controls {
-    pub fn new(up: Key, down: Key, left: Key, right: Key, enter: Key) -> Self {
-        let mut bindings = HashMap::new();
-        bindings.insert(up, GameAction::Up);
-        bindings.insert(down, GameAction::Down);
-        bindings.insert(left, GameAction::Left);
-        bindings.insert(right, GameAction::Right);
-        bindings.insert(enter, GameAction::Enter);
+    pub fn new(bindings: HashMap<Key, GameAction>) -> Self {
         Self { bindings }
     }
 
